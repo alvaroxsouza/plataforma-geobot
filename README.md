@@ -1,36 +1,169 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GeoBot Platform - Frontend
 
-## Getting Started
+Plataforma moderna e elegante de autenticação e gerenciamento, construída com Next.js 16, TypeScript e shadcn/ui.
 
-First, run the development server:
+## 🚀 Funcionalidades
+
+- ✅ **Autenticação Completa**
+  - Login de usuários
+  - Cadastro de novos usuários
+  - Recuperação de senha (interface pronta)
+  - Gerenciamento de sessão com JWT
+
+- 🎨 **Interface Moderna**
+  - Design responsivo e elegante
+  - Componentes shadcn/ui
+  - Tailwind CSS
+  - Animações suaves
+
+- 🔒 **Segurança**
+  - Integração completa com backend FastAPI
+  - Proteção de rotas
+  - Validação de formulários
+  - Tratamento de erros
+
+## 🛠️ Tecnologias
+
+- **Next.js 16** - Framework React
+- **TypeScript** - Tipagem estática
+- **shadcn/ui** - Biblioteca de componentes
+- **Tailwind CSS** - Estilização
+- **Lucide React** - Ícones
+- **Context API** - Gerenciamento de estado
+
+## 📦 Instalação
+
+1. Clone o repositório e instale as dependências:
+
+```bash
+npm install
+```
+
+2. Configure as variáveis de ambiente:
+
+```bash
+cp .env.example .env.local
+```
+
+Edite o arquivo `.env.local` e configure a URL da API:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+3. Inicie o servidor de desenvolvimento:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Acesse `http://localhost:3000`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📁 Estrutura do Projeto
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+├── app/
+│   ├── auth/              # Página de autenticação
+│   ├── dashboard/         # Página do dashboard (após login)
+│   ├── layout.tsx         # Layout principal com AuthProvider
+│   └── page.tsx           # Página inicial (redirecionamento)
+├── components/
+│   ├── auth/              # Componentes de autenticação
+│   │   ├── LoginForm.tsx
+│   │   ├── RegisterForm.tsx
+│   │   └── ForgotPasswordForm.tsx
+│   └── ui/                # Componentes shadcn/ui
+├── contexts/
+│   └── AuthContext.tsx    # Context de autenticação
+├── lib/
+│   ├── services/
+│   │   └── api.ts         # Serviço de API
+│   ├── types/
+│   │   └── auth.ts        # Tipos TypeScript
+│   └── utils.ts           # Utilitários
+└── middleware.ts          # Middleware de proteção de rotas
+```
 
-## Learn More
+## 🔌 Integração com Backend
 
-To learn more about Next.js, take a look at the following resources:
+A aplicação está totalmente integrada com a API FastAPI. Os endpoints utilizados:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `POST /auth/login` - Login
+- `POST /auth/register` - Cadastro
+- `GET /auth/me` - Dados do usuário autenticado
+- `PATCH /auth/me` - Atualizar dados do usuário
+- `DELETE /auth/me` - Deletar conta
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Exemplo de uso da API:
 
-## Deploy on Vercel
+```typescript
+import { authService } from "@/lib/services/api";
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+// Login
+const response = await authService.login({
+  email: "user@example.com",
+  password: "senha123"
+});
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+// Cadastro
+const user = await authService.register({
+  cpf: "12345678900",
+  full_name: "João Silva",
+  email: "joao@example.com",
+  password: "senha123"
+});
+```
+
+## 🎨 Componentes Principais
+
+### LoginForm
+Formulário de login com validação e feedback de erros.
+
+### RegisterForm
+Formulário de cadastro com:
+- Validação de CPF (formatação automática)
+- Confirmação de senha
+- Validação de e-mail
+
+### ForgotPasswordForm
+Interface para recuperação de senha (backend a ser implementado).
+
+### AuthContext
+Gerenciamento global de autenticação:
+```typescript
+const { user, login, logout, isAuthenticated } = useAuth();
+```
+
+## 🚀 Próximos Passos
+
+- [ ] Implementar endpoint de recuperação de senha no backend
+- [ ] Adicionar validação de força de senha
+- [ ] Implementar refresh token
+- [ ] Adicionar testes unitários
+- [ ] Melhorar feedback de erros
+- [ ] Adicionar funcionalidades do dashboard
+
+## 📝 Scripts Disponíveis
+
+```bash
+npm run dev      # Inicia servidor de desenvolvimento
+npm run build    # Cria build de produção
+npm start        # Inicia servidor de produção
+npm run lint     # Executa linter
+```
+
+## 🤝 Contribuindo
+
+1. Faça um fork do projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/MinhaFeature`)
+3. Commit suas mudanças (`git commit -m 'Adiciona MinhaFeature'`)
+4. Push para a branch (`git push origin feature/MinhaFeature`)
+5. Abra um Pull Request
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT.
+
+---
+
+Desenvolvido com ❤️ usando Next.js e shadcn/ui
