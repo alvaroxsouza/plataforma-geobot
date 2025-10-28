@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ArrowLeft, MapPin, Upload, X, Loader2 } from "lucide-react";
+import { MapPin, Upload, X, Loader2, Home, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,19 +68,30 @@ export default function NovaDenunciaPage() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href="/dashboard/denuncias">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link href="/dashboard" className="hover:text-foreground transition-colors">
+          <Home className="h-4 w-4" />
         </Link>
+        <ChevronRight className="h-4 w-4" />
+        <Link href="/dashboard/denuncias" className="hover:text-foreground transition-colors">
+          Denúncias
+        </Link>
+        <ChevronRight className="h-4 w-4" />
+        <span className="text-foreground font-medium">Nova Denúncia</span>
+      </div>
+
+      {/* Header */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Nova Denúncia</h1>
           <p className="text-muted-foreground">
-            Preencha os dados para registrar uma nova denúncia
+            Preencha o formulário abaixo para registrar uma nova denúncia
           </p>
         </div>
+        <Link href="/dashboard/denuncias">
+          <Button variant="outline">Voltar para Denúncias</Button>
+        </Link>
       </div>
 
       <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-3">

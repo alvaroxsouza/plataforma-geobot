@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Search, Filter, MapPin, Calendar, AlertCircle } from "lucide-react";
+import { Plus, Search, Filter, MapPin, Calendar, AlertCircle, Home, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,6 +53,16 @@ export default function DenunciasPage() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
+        
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link href="/dashboard" className="hover:text-foreground transition-colors">
+          <Home className="h-4 w-4" />
+        </Link>
+        <ChevronRight className="h-4 w-4" />
+        <span className="text-foreground font-medium">Denúncias</span>
+      </div>
+
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
@@ -61,12 +71,19 @@ export default function DenunciasPage() {
             Gerencie e acompanhe todas as denúncias da plataforma
           </p>
         </div>
-        <Link href="/dashboard/denuncias/nova">
-          <Button size="lg" className="gap-2">
-            <Plus className="h-5 w-5" />
-            Nova Denúncia
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/dashboard">
+            <Button variant="outline">
+              Voltar ao Dashboard
+            </Button>
+          </Link>
+          <Link href="/dashboard/denuncias/nova">
+            <Button size="lg" className="gap-2">
+              <Plus className="h-5 w-5" />
+              Nova Denúncia
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -99,6 +116,43 @@ export default function DenunciasPage() {
           );
         })}
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Denúncias por Tipo de Equipamento</CardTitle>
+          <CardDescription>
+            Acesse rapidamente as denúncias específicas de cada equipamento público
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {[
+              { slug: "calcada", nome: "Calçada", icon: "🚶" },
+              { slug: "rua", nome: "Rua", icon: "🛣️" },
+              { slug: "ciclovia", nome: "Ciclovia", icon: "🚴" },
+              { slug: "semaforo", nome: "Semáforo", icon: "🚦" },
+              { slug: "sinalizacao", nome: "Sinalização", icon: "🚧" },
+              { slug: "iluminacao", nome: "Iluminação", icon: "💡" },
+              { slug: "lixo", nome: "Lixo e Entulho", icon: "🗑️" },
+              { slug: "poluicao", nome: "Poluição", icon: "🏭" },
+              { slug: "barulho", nome: "Barulho", icon: "🔊" },
+              { slug: "outros", nome: "Outros", icon: "📋" }
+            ].map((equipamento) => (
+              <Link 
+                key={equipamento.slug}
+                href={`/dashboard/denuncias/equipamentos/${equipamento.slug}`}
+              >
+                <Card className="hover:shadow-md hover:scale-105 transition-all cursor-pointer border-2 hover:border-primary/50">
+                  <CardContent className="p-4 text-center">
+                    <div className="text-3xl mb-2">{equipamento.icon}</div>
+                    <div className="font-medium text-sm">{equipamento.nome}</div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Search and Filter */}
       <Card>
@@ -251,6 +305,7 @@ export default function DenunciasPage() {
           </Card>
         </Link>
       </div>
+      
     </div>
   );
 }

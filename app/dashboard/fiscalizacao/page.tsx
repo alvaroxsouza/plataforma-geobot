@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Search, Filter, ClipboardCheck, Calendar, Users, MapPin } from "lucide-react";
+import { Plus, Search, Filter, ClipboardCheck, Calendar, Users, MapPin, Home, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,6 +53,15 @@ export default function FiscalizacaoPage() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link href="/dashboard" className="hover:text-foreground transition-colors">
+          <Home className="h-4 w-4" />
+        </Link>
+        <ChevronRight className="h-4 w-4" />
+        <span className="text-foreground font-medium">Fiscalização</span>
+      </div>
+
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
@@ -61,12 +70,19 @@ export default function FiscalizacaoPage() {
             Gerencie vistorias, inspeções e fiscalizações de campo
           </p>
         </div>
-        <Link href="/dashboard/fiscalizacao/nova">
-          <Button size="lg" className="gap-2">
-            <Plus className="h-5 w-5" />
-            Nova Fiscalização
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/dashboard">
+            <Button variant="outline">
+              Voltar ao Dashboard
+            </Button>
+          </Link>
+          <Link href="/dashboard/fiscalizacao/nova">
+            <Button size="lg" className="gap-2">
+              <Plus className="h-5 w-5" />
+              Nova Fiscalização
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Stats Cards */}
