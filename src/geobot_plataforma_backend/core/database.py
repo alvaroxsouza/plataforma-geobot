@@ -1,28 +1,36 @@
 """
 Configuração do banco de dados
 """
-import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from dotenv import load_dotenv
+from .config import settings
 
-# Carregar variáveis de ambiente
-load_dotenv()
+# Construir URL do banco de dados a partir das configurações
+def get_database_url():
+    """Constrói a URL do banco de dados a partir das configurações"""
+    db_password = getattr(settings, 'db_password', '')
 
-# URL do banco de dados
-DATABASE_URL = os.getenv('DATABASE_URL')
+    if db_password:
+        return (
+            f"postgresql://{settings.db_user}:{db_password}"
+            f"@{settings.db_host}:{settings.db_port}/{settings.db_name}"
+        )
+    else:
+        return (
+            f"postgresql://{settings.db_user}"
+            f"@{settings.db_host}:{settings.db_port}/{settings.db_name}"
+        )
 
-if not DATABASE_URL:
-    raise ValueError("DATABASE_URL não configurada no arquivo .env")
+DATABASE_URL = get_database_url()
 
 # Criar engine do SQLAlchemy
 engine = create_engine(
     DATABASE_URL,
-    pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20,
-    echo=False  # Mude para True para debug SQL
+    pool_pre_ping=settings.get('db_pool_pre_ping', True),
+    pool_size=settings.get('db_pool_size', 10),
+    max_overflow=settings.get('db_max_overflow', 20),
+    echo=settings.get('db_echo', False)
 )
 
 # Criar SessionLocal class

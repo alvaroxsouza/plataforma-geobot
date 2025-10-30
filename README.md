@@ -35,6 +35,8 @@ Plataforma para gerenciamento de denúncias cidadãs com sistema de fiscalizaç�
 - **Alembic** - Versionamento de banco de dados
 - **PostgreSQL** - Banco de dados
 - **Poetry** - Gerenciamento de dependências
+- **Dynaconf** - Gerenciamento de configurações
+- **Docker** - Containerização
 
 ## 📁 Estrutura do Projeto
 
@@ -43,10 +45,13 @@ geobot-plataforma-backend/
 ├── alembic/                    # Configuração e migrations do Alembic
 │   ├── versions/              # Arquivos de migration organizados por data
 │   ├── env.py                 # Configuração do ambiente Alembic
+├── postgres-init/             # Scripts de inicialização do PostgreSQL
 │   ├── script.py.mako         # Template para novas migrations
 │   └── README.md              # Documentação das migrations
 ├── src/
-│   └── geobot_plataforma_backend/
+│       ├── core/              # Configurações core
+│       │   ├── config.py      # Configuração Dynaconf
+│       │   └── database.py    # Configuração do banco de dados
 │       ├── api/               # Controllers da API
 │       ├── core/              # Configurações core (database, etc)
 │       ├── domain/            # Camada de domínio
@@ -55,10 +60,12 @@ geobot-plataforma-backend/
 │       │   └── service/       # Serviços de domínio
 │       └── security/          # Autenticação e autorização
 ├── static/                    # Arquivos estáticos
+├── settings.toml              # Configurações gerais (Dynaconf)
+├── .secrets.local.toml        # Secrets locais (NÃO commitado)
+├── Dockerfile                 # Imagem Docker
+├── docker-compose.yml         # Orquestração Docker
 ├── templates/                 # Templates HTML
 ├── app.py                     # Aplicação Flask principal
-├── alembic.ini               # Configuração do Alembic
-├── pyproject.toml            # Dependências do projeto
 ├── .env.example              # Exemplo de variáveis de ambiente
 ├── .gitignore                # Arquivos ignorados pelo Git
 └── manage_migrations.sh      # Script helper para migrations
@@ -90,22 +97,45 @@ poetry install
 poetry shell
 ```
 
-## ⚙️ Configuração
+Este projeto usa **Dynaconf** para gerenciamento de configurações. Veja [DYNACONF.md](DYNACONF.md) para detalhes completos.
 
-1. **Configure as variáveis de ambiente**
+### Configuração Local
 
-Copie o arquivo `.env.example` para `.env`:
+1. **Configure os secrets**
+
+O arquivo `.secrets.local.toml` já está configurado com as credenciais de desenvolvimento:
+```toml
+[development]
+db_name = "geobot_platform"
+db_user = "geobot_user"
+db_password = "geobot2025"
+db_port = 5433
+```
+
+2. **(Opcional) Personalize configurações locais**
+
+# Criar arquivo de configurações locais
+nano settings.local.toml
 ```bash
 cp .env.example .env
-```
+### Ambientes Disponíveis
 
-Edite o arquivo `.env` com suas configurações:
-```env
-DATABASE_URL=postgresql://usuario:senha@localhost:5432/geobot_db
+- **default** - Configurações base
+- **development** - Desenvolvimento local (padrão)
+- **production** - Produção
+- **testing** - Testes
+
+### Trocar Ambiente
 SECRET_KEY=sua-chave-secreta-aqui
-```
 
-2. **Crie o banco de dados PostgreSQL**
+# Development (padrão)
+python app.py
+
+# Production
+GEOBOT_ENV=production python app.py
+
+# Testing
+GEOBOT_ENV=testing python app.py
 ```bash
 createdb geobot_db
 ```
@@ -113,8 +143,51 @@ createdb geobot_db
 ## 🗄️ Banco de Dados
 
 ### Schema
+## 🐳 Docker
+
+### Início Rápido com Docker
+
+```bash
+# 1. Iniciar serviços (PostgreSQL + App)
+docker-compose up -d
+
+# 2. Aplicar migrations
+docker-compose exec app alembic upgrade head
+
+# 3. Ver logs
+docker-compose logs -f app
+
+# 4. Acessar aplicação
+curl http://localhost:5000/health
+```
+
+Veja [DOCKER.md](DOCKER.md) para documentação completa.
+
 
 O projeto utiliza o schema `geobot_db` no PostgreSQL com as seguintes tabelas principais:
+### Opção 1: Desenvolvimento Local
+
+```bash
+# Criar banco de dados
+createdb -p 5433 geobot_platform
+
+# Aplicar migrations
+GEOBOT_ENV=development alembic upgrade head
+
+# Iniciar aplicação
+GEOBOT_ENV=development python app.py
+```
+
+### Opção 2: Com Docker (Recomendado)
+
+```bash
+# Iniciar tudo
+docker-compose up -d
+
+# Aplicar migrations
+docker-compose exec app alembic upgrade head
+```
+
 
 - **usuarios** - Usuários do sistema
 - **grupos** - Grupos de permissões
@@ -193,6 +266,15 @@ GET /
 Retorna informações básicas sobre a API.
 
 ```
+## 📚 Documentação Adicional
+
+- [DYNACONF.md](DYNACONF.md) - Guia completo do Dynaconf (configurações)
+- [DOCKER.md](DOCKER.md) - Guia completo do Docker
+- [alembic/README.md](alembic/README.md) - Documentação das migrations
+- [COMANDOS.md](COMANDOS.md) - Referência de comandos
+- [INICIO_RAPIDO.md](INICIO_RAPIDO.md) - Guia de início rápido
+- [RESUMO_DYNACONF_DOCKER.md](RESUMO_DYNACONF_DOCKER.md) - Resumo da configuração
+
 GET /api/v1/
 ```
 Retorna informações sobre a versão da API.

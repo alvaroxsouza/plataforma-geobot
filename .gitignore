@@ -41,6 +41,11 @@ env/
 .env.local
 .env.*.local
 
+# Dynaconf - Arquivos de configuração sensíveis
+.secrets.local.toml
+settings.local.toml
+.secrets.toml.local
+
 # Database
 *.db
 *.sqlite
