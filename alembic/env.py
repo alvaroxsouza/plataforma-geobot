@@ -15,6 +15,7 @@ from src.geobot_plataforma_backend.core.config import settings
 from src.geobot_plataforma_backend.core.database import Base, get_database_url
 
 # Importar todos os modelos para que o Alembic possa detectá-los
+# Importa do __init__.py que agora importa dos arquivos individuais
 from src.geobot_plataforma_backend.domain.entity import (
     Usuario, Grupo, Role, UsuarioGrupo, GrupoRole,
     Endereco, Denuncia, Fiscalizacao, Analise, Arquivo,
