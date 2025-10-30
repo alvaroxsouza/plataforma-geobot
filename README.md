@@ -77,7 +77,7 @@ geobot-plataforma-backend/
 
 - Python 3.11 ou superior
 - PostgreSQL 12 ou superior
-- Poetry
+- Poetry (opcional, mas recomendado)
 
 ### Passos
 
@@ -88,16 +88,148 @@ cd geobot-plataforma-backend
 ```
 
 2. **Instale as dependências**
+
+Com Poetry:
 ```bash
 poetry install
-```
-
-3. **Ative o ambiente virtual**
-```bash
 poetry shell
 ```
 
-Este projeto usa **Dynaconf** para gerenciamento de configurações. Veja [DYNACONF.md](DYNACONF.md) para detalhes completos.
+Ou com pip:
+```bash
+pip install -r requirements.txt  # Se disponível
+# Ou instale manualmente as dependências do pyproject.toml
+```
+
+3. **Configure as variáveis de ambiente**
+```bash
+cp .env.example .env
+# Edite o .env com suas configurações
+
+# Ou crie settings.local.toml
+cp settings.toml settings.local.toml
+# Edite settings.local.toml com suas configurações locais
+```
+
+4. **Configure o banco de dados**
+```bash
+# Crie o banco de dados PostgreSQL
+createdb geobot_db
+
+# Ou via SQL
+psql -U postgres -c "CREATE DATABASE geobot_db;"
+```
+
+5. **Execute as migrations**
+```bash
+# Teste a configuração primeiro
+python test_setup.py
+
+# Execute as migrations
+python manage_db.py upgrade
+```
+
+6. **Inicie a aplicação**
+```bash
+python app.py
+```
+
+## ⚙️ Configuração
+
+Este projeto usa **Dynaconf** para gerenciamento de configurações.
+
+### Arquivos de Configuração
+
+- `settings.toml` - Configurações gerais (NÃO sensíveis, commitado)
+- `settings.local.toml` - Configurações locais (NÃO commitado)
+- `.secrets.toml` - Secrets (NÃO commitado)
+- `.env` - Variáveis de ambiente (NÃO commitado)
+
+### Configuração do Banco de Dados
+
+No arquivo `settings.local.toml`:
+```toml
+[default]
+db_host = "localhost"
+db_port = 5432
+db_name = "geobot_db"
+db_user = "postgres"
+db_password = "sua_senha"
+```
+
+Ou via variáveis de ambiente no `.env`:
+```bash
+GEOBOT_DB_HOST=localhost
+GEOBOT_DB_PORT=5432
+GEOBOT_DB_NAME=geobot_db
+GEOBOT_DB_USER=postgres
+GEOBOT_DB_PASSWORD=sua_senha
+```
+
+## 🗄️ Banco de Dados e Migrations
+
+Este projeto usa **Alembic** para versionamento do banco de dados com execução automática de migrations.
+
+### Quick Start
+
+```bash
+# Verificar status das migrations
+python manage_db.py check
+
+# Executar migrations pendentes
+python manage_db.py upgrade
+
+# Ver versão atual
+python manage_db.py current
+
+# Ver histórico
+python manage_db.py history
+```
+
+### Criando Novas Migrations
+
+```bash
+# Migration com auto-detecção de mudanças
+python manage_db.py create -m "adicionar_campo_telefone"
+
+# Migration manual (vazia)
+python manage_db.py create -m "custom_migration" --no-autogenerate
+```
+
+### Migrations Automáticas
+
+O sistema verifica e executa migrations automaticamente na inicialização. Para desabilitar:
+
+```toml
+[default]
+auto_run_migrations = false
+```
+
+📖 **Documentação completa**: Veja [MIGRATIONS_README.md](MIGRATIONS_README.md)
+
+## 📊 Estrutura do Banco de Dados
+
+### Tabelas Principais
+
+- **usuarios** - Sistema de usuários com autenticação
+- **grupos** - Grupos de permissões
+- **roles** - Papéis/permissões do sistema
+- **denuncias** - Denúncias dos cidadãos
+- **fiscalizacoes** - Fiscalizações realizadas
+- **analises** - Análises de IA sobre fiscalizações
+- **arquivos** - Gerenciamento de arquivos
+- **enderecos** - Localização das denúncias
+
+### Recursos do Banco
+
+- ✅ Extensões PostgreSQL (uuid-ossp, pgcrypto)
+- ✅ Tipos ENUM customizados
+- ✅ Índices otimizados para performance
+- ✅ Triggers para updated_at automático
+- ✅ Constraints de validação
+- ✅ Soft delete (deleted_at)
+- ✅ UUID para todas as entidades
+- ✅ Timestamps automáticos
 
 ### Configuração Local
 

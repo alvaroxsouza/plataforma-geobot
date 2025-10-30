@@ -3,6 +3,7 @@ from flask import Flask, jsonify
 # Importar configurações e banco de dados
 from src.geobot_plataforma_backend.core.config import settings
 from src.geobot_plataforma_backend.core.database import check_db_connection, DATABASE_URL
+from src.geobot_plataforma_backend.core.migrations import run_migrations, check_pending_migrations
 
 app = Flask(__name__)
 
@@ -10,6 +11,31 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = settings.secret_key
 app.config['DATABASE_URL'] = DATABASE_URL
 app.config['DEBUG'] = settings.debug
+
+# Executar migrations automaticamente na inicialização
+@app.before_request
+def check_and_run_migrations():
+    """Verifica e executa migrations pendentes antes da primeira requisição"""
+    # Remove o handler após a primeira execução
+    if not hasattr(app, '_migrations_checked'):
+        try:
+            print("🔍 Verificando migrations do banco de dados...")
+            has_pending, message = check_pending_migrations()
+
+            if has_pending:
+                print(f"⚠️  {message}")
+                if settings.get('auto_run_migrations', True):
+                    run_migrations()
+                else:
+                    print("⚠️  Auto-execução de migrations desabilitada. Execute manualmente: python -m src.geobot_plataforma_backend.core.migrations upgrade")
+            else:
+                print(f"✅ {message}")
+
+        except Exception as e:
+            print(f"⚠️  Erro ao verificar migrations: {e}")
+            print("⚠️  Continuando sem executar migrations. Verifique a configuração do banco de dados.")
+
+        app._migrations_checked = True
 
 
 @app.route('/')

@@ -1,14 +1,25 @@
 import os
+import sys
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
-from dotenv import load_dotenv
 
-# Carregar variáveis de ambiente
-load_dotenv()
+# Adicionar o diretório raiz ao path para importar os módulos
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
+# Importar settings do Dynaconf
+from src.geobot_plataforma_backend.core.config import settings
+from src.geobot_plataforma_backend.core.database import Base, get_database_url
+
+# Importar todos os modelos para que o Alembic possa detectá-los
+from src.geobot_plataforma_backend.domain.entity import (
+    Usuario, Grupo, Role, UsuarioGrupo, GrupoRole,
+    Endereco, Denuncia, Fiscalizacao, Analise, Arquivo,
+    ArquivoDenuncia, ArquivoFiscalizacao, ArquivoAnalise
+)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -21,19 +32,15 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-target_metadata = None
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
-# Sobrescrever a URL do banco de dados com a variável de ambiente
-database_url = os.getenv('DATABASE_URL')
-if database_url:
-    config.set_main_option('sqlalchemy.url', database_url)
+# Configurar a URL do banco de dados usando Dynaconf
+config.set_main_option('sqlalchemy.url', get_database_url())
 
 
 def run_migrations_offline() -> None:

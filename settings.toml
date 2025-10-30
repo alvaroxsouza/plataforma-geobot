@@ -20,6 +20,9 @@ db_max_overflow = 20
 db_pool_pre_ping = true
 db_echo = false
 
+# Configurações de migrations
+auto_run_migrations = true  # Executar migrations automaticamente na inicialização
+
 # Configurações de segurança
 secret_key = "dev-secret-key-change-in-production"
 jwt_algorithm = "HS256"

@@ -1,7 +1,7 @@
 """
 Configuração do banco de dados
 """
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from .config import settings
@@ -65,7 +65,6 @@ def check_db_connection():
     Verifica a conexão com o banco de dados
     """
     try:
-        from sqlalchemy import text
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         return True
