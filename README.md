@@ -578,3 +578,22 @@ password_min_length = 8
 ```bash
 python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
+## 📚 Documentação Swagger/OpenAPI
+O projeto conta com documentação interativa completa usando **Swagger UI**.
+### Acesso Rápido
+- **Swagger UI**: http://localhost:5000/api/docs
+- **Swagger JSON**: http://localhost:5000/swagger.json
+### Como Usar
+1. **Iniciar servidor**: `python app.py`
+2. **Acessar documentação**: http://localhost:5000/api/docs
+3. **Testar endpoints**: Use o botão "Try it out"
+4. **Autenticar**: Clique em "Authorize" e adicione: `Bearer {token}`
+### Recursos
+- ✅ Documentação interativa de todos os endpoints
+- ✅ Testes direto na interface
+- ✅ Autenticação JWT integrada
+- ✅ Exemplos prontos para uso
+- ✅ Validação automática de dados
+- ✅ Exportação OpenAPI 3.0
+### Documentação Completa
+📖 [Guia Completo do Swagger](docs/SWAGGER.md)

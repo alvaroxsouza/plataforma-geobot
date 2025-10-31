@@ -1,4 +1,5 @@
 from flask import Flask, jsonify
+from flask_restx import Api
 
 # Importar configurações e banco de dados
 from src.geobot_plataforma_backend.core.config import settings
@@ -7,6 +8,7 @@ from src.geobot_plataforma_backend.core.migrations import run_migrations, check_
 
 # Importar controllers
 from src.geobot_plataforma_backend.api.controller.auth_controller import auth_bp
+from src.geobot_plataforma_backend.api.controller.auth_controller_restx import auth_ns
 
 app = Flask(__name__)
 
@@ -14,9 +16,36 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = settings.secret_key
 app.config['DATABASE_URL'] = DATABASE_URL
 app.config['DEBUG'] = settings.debug
+app.config['RESTX_MASK_SWAGGER'] = False  # Desabilitar máscara de campos no Swagger
+app.config['RESTX_VALIDATE'] = True  # Habilitar validação automática
 
-# Registrar blueprints
+# Configurar Swagger/OpenAPI
+authorizations = {
+    'Bearer': {
+        'type': 'apiKey',
+        'in': 'header',
+        'name': 'Authorization',
+        'description': 'Token JWT. Use o formato: Bearer {token}'
+    }
+}
+
+api = Api(
+    app,
+    version='1.0',
+    title='Geobot Plataforma API',
+    description='''
+    API para a plataforma Geobot.
+    ''',
+    doc='/api/docs',  # Swagger UI
+    authorizations=authorizations,
+    security='Bearer'
+)
+
+# Registrar blueprints antigos (para compatibilidade)
 app.register_blueprint(auth_bp)
+
+# Registrar namespaces do Flask-RESTX
+api.add_namespace(auth_ns, path='/api/auth')
 
 # Executar migrations automaticamente na inicialização
 @app.before_request
@@ -51,7 +80,9 @@ def hello_world():
         'message': f'Bem-vindo à API {settings.app_name}',
         'version': settings.app_version,
         'status': 'online',
-        'environment': settings.current_env
+        'environment': settings.current_env,
+        'documentation': '/api/docs',
+        'swagger_json': '/swagger.json'
     })
 
 
@@ -71,8 +102,11 @@ def api_info():
     """Informações sobre a API"""
     return jsonify({
         'api_version': 'v1',
+        'swagger_ui': '/api/docs',
+        'swagger_json': '/swagger.json',
         'endpoints': {
             'health': '/health',
+            'documentation': '/api/docs',
             'auth': {
                 'cadastro': '/api/auth/cadastro',
                 'login': '/api/auth/login',
@@ -95,6 +129,10 @@ if __name__ == '__main__':
         print("✓ Conexão com banco de dados estabelecida!")
     else:
         print("✗ Erro ao conectar com banco de dados!")
+
+    # Exibir URL da documentação Swagger
+    print(f"\n📚 Documentação Swagger disponível em: http://{settings.host}:{settings.port}/api/docs")
+    print(f"📄 Swagger JSON disponível em: http://{settings.host}:{settings.port}/swagger.json\n")
 
     app.run(
         debug=settings.debug,
