@@ -20,12 +20,22 @@ Plataforma para gerenciamento de denúncias cidadãs com sistema de fiscalizaç�
 
 ### Funcionalidades Principais
 
-- 🔐 Sistema de autenticação e autorização (usuários, grupos e roles)
+- 🔐 **Sistema de autenticação JWT** - Login, cadastro e logout com tokens seguros
+- 👥 Sistema de autorização (usuários, grupos e roles)
 - 📝 Gerenciamento de denúncias por categorias
 - 🔍 Sistema de fiscalização com protocolos
 - 🤖 Análise de IA para imagens, textos e vídeos
 - 📁 Upload e gerenciamento de arquivos
 - 📍 Geolocalização de denúncias
+
+### ✅ Implementado Recentemente
+
+- Sistema completo de autenticação JWT
+- Hash seguro de senhas com bcrypt
+- Proteção contra brute force
+- Middleware de autenticação
+- DTOs e validações
+- Documentação completa
 
 ## 🚀 Tecnologias
 
@@ -36,6 +46,8 @@ Plataforma para gerenciamento de denúncias cidadãs com sistema de fiscalizaç�
 - **PostgreSQL** - Banco de dados
 - **Poetry** - Gerenciamento de dependências
 - **Dynaconf** - Gerenciamento de configurações
+- **PyJWT** - Autenticação JWT
+- **Bcrypt** - Hash de senhas
 - **Docker** - Containerização
 
 ## 📁 Estrutura do Projeto
@@ -480,3 +492,89 @@ Este projeto está sob a licença especificada no arquivo LICENSE.
 4. Push para a branch (`git push origin feature/AmazingFeature`)
 5. Abra um Pull Request
 
+## 🔐 Sistema de Autenticação
+O sistema implementa autenticação JWT completa com as melhores práticas de segurança.
+### Endpoints de Autenticação
+| Método | Endpoint | Autenticação | Descrição |
+|--------|----------|--------------|-----------|
+| POST | `/api/auth/cadastro` | ❌ | Cadastrar novo usuário |
+| POST | `/api/auth/login` | ❌ | Autenticar usuário |
+| POST | `/api/auth/logout` | ✅ | Fazer logout |
+| GET | `/api/auth/me` | ✅ | Obter dados do usuário atual |
+| GET | `/api/auth/validar-token` | ✅ | Validar token JWT |
+### Recursos de Segurança
+- ✅ **JWT (JSON Web Tokens)** com algoritmo HS256
+- ✅ **Bcrypt** para hash de senhas (12 rounds)
+- ✅ **Validação de senha forte** (maiúsculas, minúsculas, números, especiais)
+- ✅ **Proteção contra brute force** (5 tentativas, bloqueio de 30min)
+- ✅ **Tokens com expiração** configurável (60 minutos padrão)
+- ✅ **Verificação de conta ativa** em cada requisição
+- ✅ **Timezone-aware timestamps** (UTC)
+### Quick Start
+1. **Cadastrar um usuário**:
+```bash
+curl -X POST http://localhost:5000/api/auth/cadastro \
+  -H "Content-Type: application/json" \
+  -d '{
+    "cpf": "12345678901",
+    "nome": "João Silva",
+    "email": "joao@exemplo.com",
+    "senha": "SenhaForte@123"
+  }'
+```
+2. **Fazer login**:
+```bash
+curl -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "joao@exemplo.com",
+    "senha": "SenhaForte@123"
+  }'
+```
+3. **Acessar rota protegida**:
+```bash
+curl -X GET http://localhost:5000/api/auth/me \
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"
+```
+### Testar o Sistema
+Execute o script de testes automatizado:
+```bash
+# Certifique-se de que o servidor está rodando
+python app.py
+# Em outro terminal, execute os testes
+python test_auth.py
+```
+### Proteger Suas Rotas
+Use o decorator `@token_required` para proteger endpoints:
+```python
+from src.geobot_plataforma_backend.security.middleware.auth_middleware import token_required, get_usuario_atual
+@app.route('/api/recurso-protegido', methods=['GET'])
+@token_required
+def recurso_protegido():
+    usuario = get_usuario_atual()
+    return jsonify({
+        'mensagem': f'Olá, {usuario["nome"]}!',
+        'usuario': usuario
+    })
+```
+### Documentação Completa
+- 📘 [Documentação de Autenticação](docs/AUTHENTICATION.md) - Guia completo
+- 🚀 [Quick Start de Autenticação](docs/QUICK_START_AUTH.md) - Início rápido
+- 🧪 [Script de Testes](test_auth.py) - Testes automatizados
+### Configuração
+Ajuste as configurações em `settings.toml`:
+```toml
+[default]
+# Chave secreta para JWT (gerar uma segura em produção)
+secret_key = "sua-chave-secreta"
+# Algoritmo JWT
+jwt_algorithm = "HS256"
+# Tempo de expiração do token (minutos)
+jwt_expiration_minutes = 60
+# Comprimento mínimo de senha
+password_min_length = 8
+```
+⚠️ **IMPORTANTE**: Em produção, use uma chave secreta forte:
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+```

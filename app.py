@@ -5,12 +5,18 @@ from src.geobot_plataforma_backend.core.config import settings
 from src.geobot_plataforma_backend.core.database import check_db_connection, DATABASE_URL
 from src.geobot_plataforma_backend.core.migrations import run_migrations, check_pending_migrations
 
+# Importar controllers
+from src.geobot_plataforma_backend.api.controller.auth_controller import auth_bp
+
 app = Flask(__name__)
 
 # Configurações usando Dynaconf
 app.config['SECRET_KEY'] = settings.secret_key
 app.config['DATABASE_URL'] = DATABASE_URL
 app.config['DEBUG'] = settings.debug
+
+# Registrar blueprints
+app.register_blueprint(auth_bp)
 
 # Executar migrations automaticamente na inicialização
 @app.before_request
@@ -67,7 +73,13 @@ def api_info():
         'api_version': 'v1',
         'endpoints': {
             'health': '/health',
-            'docs': '/api/v1/docs'
+            'auth': {
+                'cadastro': '/api/auth/cadastro',
+                'login': '/api/auth/login',
+                'logout': '/api/auth/logout',
+                'me': '/api/auth/me',
+                'validar_token': '/api/auth/validar-token'
+            }
         }
     })
 
@@ -90,8 +102,3 @@ if __name__ == '__main__':
         port=settings.port
     )
 
-    app.run(
-        debug=settings.debug,
-        host=settings.host,
-        port=settings.port
-    )
