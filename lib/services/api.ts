@@ -1,4 +1,4 @@
-import { UserLogin, UserCreate, LoginResponse, UserResponse } from "@/lib/types/auth";
+import { UserLogin, UserCreate, LoginResponse, CadastroResponse, UserResponse, LogoutResponse, TokenValidation } from "@/lib/types/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -17,7 +17,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new ApiError(
-      errorData.detail || `Erro ${response.status}: ${response.statusText}`,
+      errorData.mensagem || errorData.detail || `Erro ${response.status}: ${response.statusText}`,
       response.status,
       errorData
     );
@@ -27,7 +27,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
 
 export const authService = {
   async login(credentials: UserLogin): Promise<LoginResponse> {
-    const response = await fetch(`${API_URL}/auth/login`, {
+    const response = await fetch(`${API_URL}/api/auth/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -37,19 +37,19 @@ export const authService = {
     return handleResponse<LoginResponse>(response);
   },
 
-  async register(userData: UserCreate): Promise<UserResponse> {
-    const response = await fetch(`${API_URL}/auth/register`, {
+  async register(userData: UserCreate): Promise<CadastroResponse> {
+    const response = await fetch(`${API_URL}/api/auth/cadastro`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(userData),
     });
-    return handleResponse<UserResponse>(response);
+    return handleResponse<CadastroResponse>(response);
   },
 
   async getCurrentUser(token: string): Promise<UserResponse> {
-    const response = await fetch(`${API_URL}/auth/me`, {
+    const response = await fetch(`${API_URL}/api/auth/me`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -59,27 +59,26 @@ export const authService = {
     return handleResponse<UserResponse>(response);
   },
 
-  async updateUser(token: string, data: { full_name?: string; password?: string }): Promise<UserResponse> {
-    const response = await fetch(`${API_URL}/auth/me`, {
-      method: "PATCH",
+  async logout(token: string): Promise<LogoutResponse> {
+    const response = await fetch(`${API_URL}/api/auth/logout`, {
+      method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(data),
     });
-    return handleResponse<UserResponse>(response);
+    return handleResponse<LogoutResponse>(response);
   },
 
-  async deleteUser(token: string): Promise<{ message: string }> {
-    const response = await fetch(`${API_URL}/auth/me`, {
-      method: "DELETE",
+  async validateToken(token: string): Promise<TokenValidation> {
+    const response = await fetch(`${API_URL}/api/auth/validar-token`, {
+      method: "GET",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
     });
-    return handleResponse<{ message: string }>(response);
+    return handleResponse<TokenValidation>(response);
   },
 };
 

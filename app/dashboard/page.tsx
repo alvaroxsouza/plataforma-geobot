@@ -18,7 +18,8 @@ import {
   BarChart3,
   Settings,
   Bell,
-  ClipboardCheck
+  ClipboardCheck,
+  ListChecks
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -75,24 +76,6 @@ export default function DashboardPage() {
     },
   ];
 
-  const getRoleName = (role: string) => {
-    const roles: Record<string, string> = {
-      cidadao: "Cidadão",
-      fiscalizador: "Fiscalizador",
-      admin: "Administrador",
-    };
-    return roles[role] || role;
-  };
-
-  const getRoleBadgeColor = (role: string) => {
-    const colors: Record<string, string> = {
-      cidadao: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-      fiscalizador: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-      admin: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-    };
-    return colors[role] || "bg-gray-100 text-gray-800";
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       {/* Header / Navbar */}
@@ -130,12 +113,33 @@ export default function DashboardPage() {
           {/* Welcome Section */}
           <div className="space-y-2">
             <h2 className="text-3xl font-bold tracking-tight">
-              Bem-vindo de volta, {user?.full_name}! 👋
+              Bem-vindo de volta, {user?.nome}! 👋
             </h2>
             <p className="text-muted-foreground">
               Aqui está um resumo das suas atividades na plataforma
             </p>
           </div>
+
+          {/* Info Card */}
+          <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
+            <CardContent className="pt-6">
+              <div className="flex items-start space-x-4">
+                <div className="p-2 bg-primary/20 rounded-lg">
+                  <AlertCircle className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg mb-2">
+                    Bem-vindo à Plataforma GeoBot! 🚀
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Este é o seu dashboard principal. Aqui você poderá gerenciar denúncias,
+                    processar imagens com IA, visualizar relatórios e muito mais. As funcionalidades
+                    estão sendo desenvolvidas e estarão disponíveis em breve.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Stats Grid */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -175,7 +179,7 @@ export default function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 <Link href="/dashboard/denuncias">
                   <Card className="hover:shadow-md transition-all hover:scale-105 cursor-pointer border-2 hover:border-primary/50">
                     <CardContent className="pt-6 text-center">
@@ -184,6 +188,18 @@ export default function DashboardPage() {
                       </div>
                       <h3 className="font-semibold mb-1">Denúncias</h3>
                       <p className="text-xs text-muted-foreground">Gerenciar ocorrências</p>
+                    </CardContent>
+                  </Card>
+                </Link>
+
+                <Link href="/dashboard/gerenciar-denuncias">
+                  <Card className="hover:shadow-md transition-all hover:scale-105 cursor-pointer border-2 hover:border-primary/50">
+                    <CardContent className="pt-6 text-center">
+                      <div className="mx-auto w-12 h-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mb-3">
+                        <ListChecks className="h-6 w-6 text-green-600 dark:text-green-400" />
+                      </div>
+                      <h3 className="font-semibold mb-1">Gerenciar</h3>
+                      <p className="text-xs text-muted-foreground">Enviar fiscalização</p>
                     </CardContent>
                   </Card>
                 </Link>
@@ -240,10 +256,8 @@ export default function DashboardPage() {
                     <User className="h-8 w-8 text-primary-foreground" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-semibold text-lg">{user?.full_name}</p>
-                    <span className={`inline-block text-xs px-2 py-1 rounded-full ${getRoleBadgeColor(user?.role || "")}`}>
-                      {getRoleName(user?.role || "")}
-                    </span>
+                    <p className="font-semibold text-lg">{user?.nome}</p>
+                    <p className="text-sm text-muted-foreground">ID: {user?.uuid}</p>
                   </div>
                 </div>
 
@@ -257,13 +271,9 @@ export default function DashboardPage() {
                     <p className="text-sm font-medium">{user?.cpf}</p>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">ID:</span>
-                    <p className="text-sm font-mono text-muted-foreground">#{user?.id}</p>
-                  </div>
-                  <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Status:</span>
                     <div className="flex items-center">
-                      {user?.is_active ? (
+                      {user?.ativo ? (
                         <>
                           <CheckCircle className="h-4 w-4 text-green-600 mr-1" />
                           <span className="text-sm font-medium text-green-600">Ativo</span>
@@ -366,27 +376,6 @@ export default function DashboardPage() {
                 <p className="text-sm mt-2">
                   Comece criando sua primeira denúncia ou processando imagens
                 </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Info Card */}
-          <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
-            <CardContent className="pt-6">
-              <div className="flex items-start space-x-4">
-                <div className="p-2 bg-primary/20 rounded-lg">
-                  <AlertCircle className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">
-                    Bem-vindo à Plataforma GeoBot! 🚀
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Este é o seu dashboard principal. Aqui você poderá gerenciar denúncias,
-                    processar imagens com IA, visualizar relatórios e muito mais. As funcionalidades
-                    estão sendo desenvolvidas e estarão disponíveis em breve.
-                  </p>
-                </div>
               </div>
             </CardContent>
           </Card>

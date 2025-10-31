@@ -10,9 +10,9 @@ import { Loader2, Mail, Lock, User, CreditCard } from "lucide-react";
 export function RegisterForm() {
   const [formData, setFormData] = useState({
     cpf: "",
-    full_name: "",
+    nome: "",
     email: "",
-    password: "",
+    senha: "",
     confirmPassword: "",
   });
   const [error, setError] = useState("");
@@ -37,13 +37,20 @@ export function RegisterForm() {
     e.preventDefault();
     setError("");
 
-    if (formData.password !== formData.confirmPassword) {
+    if (formData.senha !== formData.confirmPassword) {
       setError("As senhas não coincidem");
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError("A senha deve ter no mínimo 6 caracteres");
+    if (formData.senha.length < 8) {
+      setError("A senha deve ter no mínimo 8 caracteres");
+      return;
+    }
+
+    // Validação de senha forte conforme documentação
+    const senhaRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
+    if (!senhaRegex.test(formData.senha)) {
+      setError("A senha deve conter pelo menos 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial");
       return;
     }
 
@@ -53,11 +60,16 @@ export function RegisterForm() {
       // Remove formatação do CPF antes de enviar
       const cpf = formData.cpf.replace(/\D/g, "");
       
+      if (cpf.length !== 11) {
+        setError("CPF deve conter 11 dígitos");
+        return;
+      }
+      
       await register({
         cpf,
-        full_name: formData.full_name,
+        nome: formData.nome,
         email: formData.email,
-        password: formData.password,
+        senha: formData.senha,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao criar conta");
@@ -69,15 +81,15 @@ export function RegisterForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="full_name">Nome Completo</Label>
+        <Label htmlFor="nome">Nome Completo</Label>
         <div className="relative">
           <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
-            id="full_name"
+            id="nome"
             type="text"
             placeholder="Seu nome completo"
-            value={formData.full_name}
-            onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+            value={formData.nome}
+            onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
             required
             className="pl-10"
             disabled={isLoading}
@@ -120,20 +132,23 @@ export function RegisterForm() {
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="password">Senha</Label>
+        <Label htmlFor="senha">Senha</Label>
         <div className="relative">
           <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
-            id="password"
+            id="senha"
             type="password"
             placeholder="••••••••"
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            value={formData.senha}
+            onChange={(e) => setFormData({ ...formData, senha: e.target.value })}
             required
             className="pl-10"
             disabled={isLoading}
           />
         </div>
+        <p className="text-xs text-muted-foreground">
+          Mínimo 8 caracteres com maiúscula, minúscula, número e caractere especial
+        </p>
       </div>
 
       <div className="space-y-2">

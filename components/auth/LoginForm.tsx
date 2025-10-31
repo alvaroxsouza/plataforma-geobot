@@ -20,7 +20,7 @@ export function LoginForm() {
     setIsLoading(true);
 
     try {
-      await login({ email, password });
+      await login({ email, senha: password });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao fazer login");
     } finally {

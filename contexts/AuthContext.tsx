@@ -8,7 +8,7 @@ import { UserLogin, UserCreate, AuthState } from "@/lib/types/auth";
 interface AuthContextType extends AuthState {
   login: (credentials: UserLogin) => Promise<void>;
   register: (userData: UserCreate) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateUser: (data: { full_name?: string; password?: string }) => Promise<void>;
 }
 
@@ -82,16 +82,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await authService.login(credentials);
       const token = response.access_token;
-      
-      // Buscar dados do usuário
-      const user = await authService.getCurrentUser(token);
+      const user = response.usuario;
 
       console.log('Login bem-sucedido:', user);
       
       if (typeof window !== 'undefined') {
         localStorage.setItem("token", token);
         // Também salvar nos cookies para o proxy funcionar
-        document.cookie = `token=${token}; path=/; max-age=${60 * 60 * 24 * 7}`; // 7 dias
+        document.cookie = `token=${token}; path=/; max-age=${response.expires_in || 60 * 60 * 24 * 7}`;
       }
 
       console.log('Token salvo com sucesso:', token);
@@ -107,10 +105,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       router.push("/dashboard");
     } catch (error) {
+      console.error('Erro ao fazer login:', error);
       if (error instanceof ApiError) {
+        console.error('Erro ao criar conta:', error.message);
         throw new Error(error.message);
       }
-      throw new Error("Erro ao fazer login. Tente novamente.");
+      throw new Error(`Erro ao fazer login. Tente novamente. ${error}`);
     }
   };
 
@@ -118,36 +118,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await authService.register(userData);
       // Após cadastro, fazer login automaticamente
-      await login({ email: userData.email, password: userData.password });
+      await login({ email: userData.email, senha: userData.senha });
     } catch (error) {
+      console.error('Erro ao criar conta:', error);
       if (error instanceof ApiError) {
+        console.error('Erro ao criar conta:', error);
         throw new Error(error.message);
       }
       throw new Error("Erro ao criar conta. Tente novamente.");
     }
   };
 
-  const logout = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem("token");
-      // Remover cookie também
-      document.cookie = 'token=; path=/; max-age=0';
+  const logout = async () => {
+    try {
+      if (state.token) {
+        await authService.logout(state.token);
+      }
+    } catch (error) {
+      console.error('Erro ao fazer logout no servidor:', error);
+    } finally {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem("token");
+        // Remover cookie também
+        document.cookie = 'token=; path=/; max-age=0';
+      }
+      setState({
+        user: null,
+        token: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
+      router.push("/auth");
     }
-    setState({
-      user: null,
-      token: null,
-      isAuthenticated: false,
-      isLoading: false,
-    });
-    router.push("/auth");
   };
 
-  const updateUser = async (data: { full_name?: string; password?: string }) => {
+  const updateUser = async (_data: { full_name?: string; password?: string }) => {
     if (!state.token) throw new Error("Não autenticado");
     
     try {
-      const updatedUser = await authService.updateUser(state.token, data);
-      setState((prev) => ({ ...prev, user: updatedUser }));
+      // Validar token antes de atualizar
+      await authService.validateToken(state.token);
+      // TODO: Implementar endpoint de atualização quando disponível na API
+      throw new Error("Funcionalidade de atualização ainda não implementada na API");
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);

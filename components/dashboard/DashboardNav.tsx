@@ -12,6 +12,7 @@ import {
   BarChart3,
   Settings,
   HelpCircle,
+  ListChecks,
 } from "lucide-react";
 
 interface DashboardNavProps {
@@ -28,6 +29,12 @@ const navItems = [
     title: "Denúncias",
     href: "/dashboard/denuncias",
     icon: AlertCircle,
+    disabled: false,
+  },
+  {
+    title: "Gerenciar Denúncias",
+    href: "/dashboard/gerenciar-denuncias",
+    icon: ListChecks,
     disabled: false,
   },
   {

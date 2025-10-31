@@ -19,7 +19,7 @@ export default function AuthPage() {
         <div className="space-y-4">
           <div className="flex items-center space-x-2">
             <MapPin className="h-10 w-10" />
-            <h1 className="text-4xl font-bold">GeoBot Platform</h1>
+            <h1 className="text-4xl font-bold">GeoBot</h1>
           </div>
           <p className="text-xl opacity-90">
             Plataforma inteligente de segmentação de imagens e gerenciamento de denúncias
