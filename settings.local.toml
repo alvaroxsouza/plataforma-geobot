@@ -2,11 +2,12 @@
 # Use este arquivo para configurações específicas do seu ambiente local
 # NÃO COMMITAR ESTE ARQUIVO
 
-# Exemplo de uso:
-# [default]
-# debug = true
-#
-# [development]
-# db_host = "localhost"
-# db_port = 5433
+[default]
+# Usar porta 8000 para o servidor
+port = 8000
+debug = true
+
+[development]
+db_host = "localhost"
+db_port = 5433
 

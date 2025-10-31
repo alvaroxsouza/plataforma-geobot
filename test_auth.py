@@ -7,7 +7,7 @@ import requests
 import json
 from datetime import datetime
 
-BASE_URL = "http://localhost:5000"
+BASE_URL = "http://localhost:8000"
 TEST_USER = {
     "cpf": "12345678901",
     "nome": "Usuário Teste",

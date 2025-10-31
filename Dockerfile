@@ -30,7 +30,7 @@ RUN poetry install --no-interaction --no-ansi
 # Define variável de ambiente para o Dynaconf
 ENV GEOBOT_ENV=production
 
-EXPOSE 5000
+EXPOSE 8000
 
 # Comando para iniciar a aplicação
 CMD ["python", "app.py"]

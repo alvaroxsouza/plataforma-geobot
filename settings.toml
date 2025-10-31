@@ -8,7 +8,7 @@ app_name = "Geobot Plataforma Backend"
 app_version = "0.1.0"
 debug = false
 host = "0.0.0.0"
-port = 5000
+port = 8000
 
 # Configurações do banco de dados (valores padrão)
 db_host = "localhost"
@@ -38,6 +38,18 @@ upload_folder = "uploads"
 log_level = "INFO"
 log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
+# Configurações de CORS
+cors_enabled = true
+cors_allow_origins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "http://localhost:3001",
+  "http://127.0.0.1:3001"
+]
+cors_allow_credentials = true
+cors_allow_methods = ["*"]
+cors_allow_headers = ["*"]
+
 [development]
 debug = true
 db_echo = true
@@ -54,4 +66,3 @@ port = 8000
 db_name = "geobot_db_test"
 debug = true
 log_level = "DEBUG"
-

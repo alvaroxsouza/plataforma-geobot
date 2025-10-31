@@ -1,5 +1,6 @@
 from flask import Flask, jsonify
 from flask_restx import Api
+from flask_cors import CORS
 
 # Importar configurações e banco de dados
 from src.geobot_plataforma_backend.core.config import settings
@@ -18,6 +19,41 @@ app.config['DATABASE_URL'] = DATABASE_URL
 app.config['DEBUG'] = settings.debug
 app.config['RESTX_MASK_SWAGGER'] = False  # Desabilitar máscara de campos no Swagger
 app.config['RESTX_VALIDATE'] = True  # Habilitar validação automática
+
+# CORS - configurações
+if settings.get('cors_enabled', True):
+    # Garante que http://localhost:3000 esteja na lista de origens permitidas
+    allowed_origins = set(settings.get('cors_allow_origins', [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001"
+    ]))
+    allowed_origins.add("http://localhost:3000")
+
+    # Normaliza métodos e headers (evita "*" que não é aceito com credentials)
+    default_methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+    cfg_methods = settings.get('cors_allow_methods', default_methods)
+    if isinstance(cfg_methods, (list, tuple)) and any(m == "*" for m in cfg_methods):
+        allowed_methods = default_methods
+    else:
+        allowed_methods = list(cfg_methods) if isinstance(cfg_methods, (list, tuple)) else default_methods
+
+    default_headers = ["Content-Type", "Authorization", "X-Requested-With"]
+    cfg_headers = settings.get('cors_allow_headers', default_headers)
+    if isinstance(cfg_headers, (list, tuple)) and any(h == "*" for h in cfg_headers):
+        allowed_headers = default_headers
+    else:
+        allowed_headers = list(cfg_headers) if isinstance(cfg_headers, (list, tuple)) else default_headers
+
+    # Aplicar CORS para todas as rotas (inclui /, /health, /api/*, etc.)
+    CORS(
+        app,
+        resources={r"/*": {"origins": list(allowed_origins)}},
+        supports_credentials=settings.get('cors_allow_credentials', True),
+        methods=allowed_methods,
+        allow_headers=allowed_headers
+    )
 
 # Configurar Swagger/OpenAPI
 authorizations = {
@@ -139,4 +175,3 @@ if __name__ == '__main__':
         host=settings.host,
         port=settings.port
     )
-
