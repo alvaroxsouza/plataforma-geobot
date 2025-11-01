@@ -8,9 +8,11 @@ from src.geobot_plataforma_backend.core.config import settings
 from src.geobot_plataforma_backend.core.database import check_db_connection
 
 # Routers
-from src.geobot_plataforma_backend.api.controller.auth_router import router as auth_router
-from src.geobot_plataforma_backend.api.controller.denuncia_controller import router as denuncia_router
-from src.geobot_plataforma_backend.api.controller.fiscalizacao_router import router as fiscalizacao_router
+from src.geobot_plataforma_backend.api.routers import (
+    auth_router,
+    denuncia_router,
+    fiscalizacao_router,
+)
 
 
 tags_metadata = [

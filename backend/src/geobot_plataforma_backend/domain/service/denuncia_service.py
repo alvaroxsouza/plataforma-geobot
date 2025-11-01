@@ -53,7 +53,7 @@ class DenunciaService:
         # Temporariamente retorna True para desenvolvimento
         return True
 
-    async def criar_denuncia(self, dados: DenunciaCriarDTO, usuario_id: int) -> DenunciaResponseDTO:
+    def criar_denuncia(self, dados: DenunciaCriarDTO, usuario_id: int) -> DenunciaResponseDTO:
         """Cria uma nova denúncia. Qualquer usuário ativo pode criar denúncias."""
         usuario = self.usuario_repository.buscar_por_id(usuario_id)
         if not usuario:
@@ -86,7 +86,7 @@ class DenunciaService:
 
         return DenunciaResponseDTO.from_entity(denuncia)
 
-    async def listar_minhas_denuncias(
+    def listar_minhas_denuncias(
         self,
         usuario_id: int,
         status: Optional[StatusDenuncia] = None,
@@ -101,7 +101,7 @@ class DenunciaService:
         denuncias = self.repository.listar_por_usuario(usuario_id, status)
         return [DenunciaResponseDTO.from_entity(d) for d in denuncias]
 
-    async def listar_todas_denuncias(
+    def listar_todas_denuncias(
         self,
         usuario_id: int,
         status: Optional[StatusDenuncia] = None,
@@ -119,7 +119,7 @@ class DenunciaService:
         denuncias = self.repository.listar_todas(status)
         return [DenunciaResponseDTO.from_entity(d) for d in denuncias]
 
-    async def buscar_denuncia(self, denuncia_id: int, usuario_id: int) -> DenunciaResponseDTO:
+    def buscar_denuncia(self, denuncia_id: int, usuario_id: int) -> DenunciaResponseDTO:
         """Busca uma denúncia específica."""
         usuario = self.usuario_repository.buscar_por_id(usuario_id)
         if not usuario:
@@ -136,7 +136,7 @@ class DenunciaService:
 
         return DenunciaResponseDTO.from_entity(denuncia)
 
-    async def atualizar_denuncia(
+    def atualizar_denuncia(
         self,
         denuncia_id: int,
         dados: DenunciaAtualizarDTO,
@@ -167,7 +167,7 @@ class DenunciaService:
         denuncia = self.repository.atualizar(denuncia)
         return DenunciaResponseDTO.from_entity(denuncia)
 
-    async def deletar_denuncia(self, denuncia_id: int, usuario_id: int) -> bool:
+    def deletar_denuncia(self, denuncia_id: int, usuario_id: int) -> bool:
         """Deleta uma denúncia. Apenas o criador (status PENDENTE)."""
         usuario = self.usuario_repository.buscar_por_id(usuario_id)
         if not usuario:
@@ -187,7 +187,7 @@ class DenunciaService:
 
         return self.repository.deletar(denuncia)
 
-    async def atualizar_status_denuncia(
+    def atualizar_status_denuncia(
         self,
         denuncia_id: int,
         novo_status: StatusDenuncia,

@@ -1,4 +1,4 @@
-"""Controller (FastAPI Router) para rotas de denúncia"""
+"""Router (FastAPI) para rotas de denúncia"""
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -56,7 +56,7 @@ def _value_error_to_status(err: ValueError) -> int:
 
 
 @router.get("/", response_model=List[dict])
-async def listar_denuncias(
+def listar_denuncias(
     status_filter: Optional[StatusDenuncia] = Query(None, alias="status"),
     todas: bool = Query(False, description="Se true, lista todas as denúncias (apenas admin/fiscal)"),
     current_user=Depends(get_current_user),
@@ -66,9 +66,9 @@ async def listar_denuncias(
     service = DenunciaService(db)
     try:
         if todas:
-            denuncias = await service.listar_todas_denuncias(current_user.id, status_filter)
+            denuncias = service.listar_todas_denuncias(current_user.id, status_filter)
         else:
-            denuncias = await service.listar_minhas_denuncias(current_user.id, status_filter)
+            denuncias = service.listar_minhas_denuncias(current_user.id, status_filter)
         return [denuncia.to_dict() for denuncia in denuncias]
     except AutorizacaoError as err:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(err)) from err
@@ -79,7 +79,7 @@ async def listar_denuncias(
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-async def criar_denuncia(
+def criar_denuncia(
     payload: DenunciaCriarPayload,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -101,7 +101,7 @@ async def criar_denuncia(
             latitude=payload.latitude,
             longitude=payload.longitude,
         )
-        denuncia = await service.criar_denuncia(dto, current_user.id)
+        denuncia = service.criar_denuncia(dto, current_user.id)
         return denuncia.to_dict()
     except AutorizacaoError as err:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(err)) from err
@@ -112,7 +112,7 @@ async def criar_denuncia(
 
 
 @router.get("/{denuncia_id}")
-async def obter_denuncia(
+def obter_denuncia(
     denuncia_id: int,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -120,7 +120,7 @@ async def obter_denuncia(
     """Busca uma denúncia por ID."""
     service = DenunciaService(db)
     try:
-        denuncia = await service.buscar_denuncia(denuncia_id, current_user.id)
+        denuncia = service.buscar_denuncia(denuncia_id, current_user.id)
         return denuncia.to_dict()
     except AutorizacaoError as err:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(err)) from err
@@ -131,7 +131,7 @@ async def obter_denuncia(
 
 
 @router.patch("/{denuncia_id}")
-async def atualizar_denuncia(
+def atualizar_denuncia(
     denuncia_id: int,
     payload: DenunciaAtualizarPayload,
     current_user=Depends(get_current_user),
@@ -144,7 +144,7 @@ async def atualizar_denuncia(
             observacao=payload.observacao,
             prioridade=payload.prioridade,
         )
-        denuncia = await service.atualizar_denuncia(denuncia_id, dto, current_user.id)
+        denuncia = service.atualizar_denuncia(denuncia_id, dto, current_user.id)
         return denuncia.to_dict()
     except AutorizacaoError as err:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(err)) from err
@@ -155,7 +155,7 @@ async def atualizar_denuncia(
 
 
 @router.delete("/{denuncia_id}", status_code=status.HTTP_200_OK)
-async def deletar_denuncia(
+def deletar_denuncia(
     denuncia_id: int,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -163,7 +163,7 @@ async def deletar_denuncia(
     """Deleta uma denúncia (apenas criador e status pendente)."""
     service = DenunciaService(db)
     try:
-        await service.deletar_denuncia(denuncia_id, current_user.id)
+        service.deletar_denuncia(denuncia_id, current_user.id)
         return {"mensagem": "Denúncia deletada com sucesso"}
     except AutorizacaoError as err:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(err)) from err
@@ -174,7 +174,7 @@ async def deletar_denuncia(
 
 
 @router.patch("/{denuncia_id}/status")
-async def atualizar_status(
+def atualizar_status(
     denuncia_id: int,
     payload: StatusUpdatePayload,
     current_user=Depends(get_current_user),
@@ -183,7 +183,7 @@ async def atualizar_status(
     """Atualiza o status de uma denúncia (apenas admin/fiscal)."""
     service = DenunciaService(db)
     try:
-        denuncia = await service.atualizar_status_denuncia(
+        denuncia = service.atualizar_status_denuncia(
             denuncia_id,
             payload.status,
             current_user.id,
