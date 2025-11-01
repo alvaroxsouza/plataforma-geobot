@@ -9,7 +9,7 @@ from src.geobot_plataforma_backend.core.database import check_db_connection
 
 # Routers
 from src.geobot_plataforma_backend.api.controller.auth_router import router as auth_router
-from src.geobot_plataforma_backend.api.controller.denuncias_router import router as denuncias_router
+from src.geobot_plataforma_backend.api.controller.denuncia_controller import router as denuncia_router
 from src.geobot_plataforma_backend.api.controller.fiscalizacao_router import router as fiscalizacao_router
 
 
@@ -55,9 +55,8 @@ def create_app() -> FastAPI:
 
     # incluir routers
     app.include_router(auth_router, prefix="/api/auth")
-    # Routers compatíveis com frontend
-    app.include_router(denuncias_router, prefix="")
-    app.include_router(fiscalizacao_router, prefix="")
+    app.include_router(denuncia_router, prefix="/api")
+    app.include_router(fiscalizacao_router, prefix="/api")
 
     @app.get('/')
     def root():
