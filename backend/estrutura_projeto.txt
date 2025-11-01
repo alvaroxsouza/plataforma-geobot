@@ -1,0 +1,53 @@
+.
+├── alembic
+│   ├── env.py
+│   ├── README.md
+│   ├── script.py.mako
+│   └── versions
+│       ├── 20251029_1000_001_criar_schema_e_extensoes.py
+│       ├── 20251029_1005_002_criar_tipos_enumerados.py
+│       ├── 20251029_1010_003_criar_tabela_usuarios.py
+│       ├── 20251029_1015_004_criar_tabelas_grupos_e_roles.py
+│       ├── 20251029_1020_005_criar_tabelas_relacionamento.py
+│       ├── 20251029_1025_006_criar_tabela_enderecos.py
+│       ├── 20251029_1030_007_criar_tabela_denuncias.py
+│       ├── 20251029_1035_008_criar_tabela_fiscalizacoes.py
+│       ├── 20251029_1040_009_criar_tabela_analises.py
+│       ├── 20251029_1045_010_criar_tabela_arquivos.py
+│       ├── 20251029_1050_011_criar_tabelas_relacionamento_arquivos.py
+│       ├── 20251029_1055_012_criar_funcoes_e_triggers.py
+│       └── 20251029_1100_013_inserir_dados_iniciais.py
+├── alembic.ini
+├── app.py
+├── COMANDOS.md
+├── estrutura_projeto.txt
+├── INICIO_RAPIDO.md
+├── manage_migrations.sh
+├── poetry.lock
+├── pyproject.toml
+├── README.md
+├── RESUMO_IMPLEMENTACAO.md
+├── src
+│   ├── geobot_plataforma_backend
+│   │   ├── api
+│   │   │   ├── controller
+│   │   │   └── __init__.py
+│   │   ├── core
+│   │   │   ├── database.py
+│   │   │   └── __init__.py
+│   │   ├── domain
+│   │   │   ├── entity
+│   │   │   ├── __init__.py
+│   │   │   ├── repository
+│   │   │   └── service
+│   │   ├── __init__.py
+│   │   └── security
+│   │       ├── controller
+│   │       ├── __init__.py
+│   │       └── service
+│   └── __init__.py
+├── static
+├── templates
+└── validar_setup.sh
+
+17 directories, 34 files

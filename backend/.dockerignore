@@ -1,0 +1,110 @@
+# Arquivos e diretórios a serem ignorados pelo Docker
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment variables
+.env
+.env.local
+
+# Dynaconf
+.secrets.local.toml
+settings.local.toml
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Docker
+docker-compose.override.yml
+.dockerignore
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Documentation
+*.md
+docs/
+
+# Uploads (em produção use volume)
+uploads/
+
+# Alembic (migrations aplicadas via comando)
+alembic/versions/__pycache__/
+
+# Scripts auxiliares
+*.sh
+!postgres-init/*.sh
+
+# Arquivos temporários
+*.tmp
+*.bak
+#!/bin/bash
+set -e
+
+# Script de inicialização do banco de dados PostgreSQL
+# Este script é executado automaticamente quando o container é criado pela primeira vez
+
+echo "🔧 Inicializando banco de dados geobot_platform..."
+
+# Criar extensões necessárias
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+    -- Criar extensões
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+    -- Mensagem de sucesso
+    SELECT 'Extensões criadas com sucesso!' as status;
+EOSQL
+
+echo "✅ Banco de dados inicializado com sucesso!"
+

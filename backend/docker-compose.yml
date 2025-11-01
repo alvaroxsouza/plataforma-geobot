@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    container_name: geobot_platform_db
+    restart: always
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: geobot_user
+      POSTGRES_PASSWORD: geobot2025
+      POSTGRES_DB: geobot_platform
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U geobot_user -d geobot_platform"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: geobot_platform_app
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      GEOBOT_ENV: development
+      GEOBOT__HOST: 0.0.0.0
+      GEOBOT__PORT: 8000
+      GEOBOT__DB_HOST: db
+      GEOBOT__DB_PORT: 5432
+      GEOBOT__DB_NAME: geobot_platform
+      GEOBOT__DB_USER: geobot_user
+      GEOBOT__DB_PASSWORD: geobot2025
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+
+volumes:
+  pgdata:

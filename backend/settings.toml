@@ -1,0 +1,68 @@
+# Configurações gerais do projeto Geobot Plataforma
+# Este arquivo contém configurações NÃO SENSÍVEIS
+# Para configurações sensíveis, use .secrets.toml ou .secrets.local.toml
+
+[default]
+# Configurações da aplicação
+app_name = "Geobot Plataforma Backend"
+app_version = "0.1.0"
+debug = false
+host = "0.0.0.0"
+port = 8000
+
+# Configurações do banco de dados (valores padrão)
+db_host = "localhost"
+db_port = 5432
+db_name = "geobot_db"
+db_user = "postgres"
+db_pool_size = 10
+db_max_overflow = 20
+db_pool_pre_ping = true
+db_echo = false
+
+# Configurações de migrations
+auto_run_migrations = true  # Executar migrations automaticamente na inicialização
+
+# Configurações de segurança
+secret_key = "dev-secret-key-change-in-production"
+jwt_algorithm = "HS256"
+jwt_expiration_minutes = 60
+password_min_length = 8
+
+# Configurações de upload de arquivos
+max_file_size_mb = 10
+allowed_extensions = [".jpg", ".jpeg", ".png", ".pdf", ".doc", ".docx"]
+upload_folder = "uploads"
+
+# Configurações de logging
+log_level = "INFO"
+log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# Configurações de CORS
+cors_enabled = true
+cors_allow_origins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "http://localhost:3001",
+  "http://127.0.0.1:3001"
+]
+cors_allow_credentials = true
+cors_allow_methods = ["*"]
+cors_allow_headers = ["*"]
+
+[development]
+debug = true
+db_echo = true
+log_level = "DEBUG"
+
+[production]
+debug = false
+db_echo = false
+log_level = "WARNING"
+host = "0.0.0.0"
+port = 8000
+
+[testing]
+db_name = "geobot_db_test"
+debug = true
+log_level = "DEBUG"
