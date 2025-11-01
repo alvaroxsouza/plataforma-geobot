@@ -1,0 +1,116 @@
+"""Router FastAPI para endpoints de autenticação"""
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, EmailStr
+from typing import Optional
+
+from src.geobot_plataforma_backend.core.database import SessionLocal
+from src.geobot_plataforma_backend.domain.service.auth_service import AuthService
+from src.geobot_plataforma_backend.security.dependencies import get_current_user
+from src.geobot_plataforma_backend.api.dtos.usuario_dto import UsuarioCadastroDTO, UsuarioLoginDTO
+
+
+router = APIRouter()
+
+
+class UsuarioCadastroModel(BaseModel):
+    cpf: str
+    nome: str
+    email: EmailStr
+    senha: str
+
+
+class UsuarioLoginModel(BaseModel):
+    email: EmailStr
+    senha: str
+
+
+@router.post('/cadastro', status_code=201)
+def cadastrar_usuario(body: UsuarioCadastroModel):
+    try:
+        dados_dto = UsuarioCadastroDTO(
+            cpf=body.cpf,
+            nome=body.nome,
+            email=body.email,
+            senha=body.senha
+        )
+
+        db = SessionLocal()
+        try:
+            auth_service = AuthService(db)
+            usuario_criado = auth_service.cadastrar_usuario(dados_dto)
+            return JSONResponse({'mensagem': 'Usuário cadastrado com sucesso', 'usuario': usuario_criado.to_dict()}, status_code=201)
+        finally:
+            db.close()
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail={'erro': 'Erro de validação', 'mensagem': str(e)})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={'erro': 'Erro interno do servidor', 'mensagem': 'Ocorreu um erro ao processar sua solicitação'})
+
+
+@router.post('/login')
+def login(body: UsuarioLoginModel):
+    try:
+        dados_dto = UsuarioLoginDTO(email=body.email, senha=body.senha)
+
+        db = SessionLocal()
+        try:
+            auth_service = AuthService(db)
+            resultado = auth_service.autenticar(dados_dto)
+            resp = {'mensagem': 'Login realizado com sucesso', **resultado.to_dict()}
+            return JSONResponse(resp, status_code=200)
+        finally:
+            db.close()
+
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail={'erro': 'Credenciais inválidas', 'mensagem': str(e)})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={'erro': 'Erro interno do servidor', 'mensagem': 'Ocorreu um erro ao processar sua solicitação'})
+
+
+@router.post('/logout')
+def logout(current_user=Depends(get_current_user)):
+    try:
+        usuario = current_user
+        return JSONResponse({'mensagem': 'Logout realizado com sucesso', 'usuario': usuario.nome}, status_code=200)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={'erro': 'Erro interno do servidor', 'mensagem': 'Ocorreu um erro ao processar sua solicitação'})
+
+
+@router.get('/me')
+def obter_usuario_atual(current_user=Depends(get_current_user)):
+    try:
+        usuario = current_user
+        return JSONResponse({'usuario': {
+            'id': usuario.id,
+            'uuid': str(usuario.uuid),
+            'cpf': usuario.cpf,
+            'nome': usuario.nome,
+            'email': usuario.email,
+            'ativo': usuario.ativo
+        }}, status_code=200)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={'erro': 'Erro interno do servidor', 'mensagem': 'Ocorreu um erro ao processar sua solicitação'})
+
+
+@router.get('/validar-token')
+def validar_token(current_user=Depends(get_current_user)):
+    try:
+        usuario = current_user
+        return JSONResponse({'valido': True, 'mensagem': 'Token válido', 'usuario': {
+            'id': usuario.id,
+            'uuid': str(usuario.uuid),
+            'cpf': usuario.cpf,
+            'nome': usuario.nome,
+            'email': usuario.email,
+            'ativo': usuario.ativo
+        }}, status_code=200)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={'erro': 'Erro interno do servidor', 'mensagem': 'Ocorreu um erro ao processar sua solicitação'})

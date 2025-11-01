@@ -36,7 +36,7 @@ def test_health():
         return response.status_code == 200
     except Exception as e:
         print(f"❌ Erro ao conectar com o servidor: {e}")
-        print("⚠️  Certifique-se de que o servidor está rodando: python app.py")
+        print("⚠️  Certifique-se de que o servidor está rodando: python app.py ou uvicorn src.geobot_plataforma_backend.app_fastapi:app --reload")
         return False
 
 def test_cadastro():

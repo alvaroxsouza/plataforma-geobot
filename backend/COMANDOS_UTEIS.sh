@@ -19,8 +19,8 @@ echo "  python manage_db.py upgrade             # Executar migrations"
 echo ""
 
 echo -e "${YELLOW}🚀 APLICAÇÃO:${NC}"
-echo "  python app.py                           # Iniciar aplicação Flask"
-echo "  python app.py --host 0.0.0.0 --port 5000"
+echo "  python app.py                           # Iniciar aplicação FastAPI"
+echo "  uvicorn src.geobot_plataforma_backend.app_fastapi:app --reload"
 echo ""
 
 echo -e "${YELLOW}🗄️ MIGRATIONS:${NC}"

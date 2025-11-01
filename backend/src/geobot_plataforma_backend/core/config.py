@@ -4,7 +4,7 @@ Configuração centralizada usando Dynaconf
 from dynaconf import Dynaconf
 
 settings = Dynaconf(
-    envvar_prefix="GEOBOT",
+    envvar_prefix="",
     settings_files=['settings.toml', 'settings.local.toml', '.secrets.toml', '.secrets.local.toml'],
     environments=True,
     load_dotenv=True,

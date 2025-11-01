@@ -40,7 +40,8 @@ Plataforma para gerenciamento de denúncias cidadãs com sistema de fiscalizaç�
 ## 🚀 Tecnologias
 
 - **Python 3.11+**
-- **Flask** - Framework web
+- **FastAPI** - Framework web ASGI
+- **Uvicorn** - Servidor ASGI
 - **SQLAlchemy** - ORM
 - **Alembic** - Versionamento de banco de dados
 - **PostgreSQL** - Banco de dados
@@ -77,7 +78,7 @@ geobot-plataforma-backend/
 ├── Dockerfile                 # Imagem Docker
 ├── docker-compose.yml         # Orquestração Docker
 ├── templates/                 # Templates HTML
-├── app.py                     # Aplicação Flask principal
+├── app.py                     # Script para executar FastAPI com Uvicorn
 ├── .env.example              # Exemplo de variáveis de ambiente
 ├── .gitignore                # Arquivos ignorados pelo Git
 └── manage_migrations.sh      # Script helper para migrations
@@ -144,6 +145,8 @@ python manage_db.py upgrade
 6. **Inicie a aplicação**
 ```bash
 python app.py
+# ou
+uvicorn src.geobot_plataforma_backend.app_fastapi:app --reload
 ```
 
 ## ⚙️ Configuração
@@ -302,7 +305,7 @@ docker-compose exec app alembic upgrade head
 docker-compose logs -f app
 
 # 4. Acessar aplicação
-curl http://localhost:5000/health
+curl http://localhost:8000/health
 ```
 
 Veja [DOCKER.md](DOCKER.md) para documentação completa.
@@ -385,7 +388,7 @@ alembic downgrade -1
 python app.py
 ```
 
-O servidor estará disponível em `http://localhost:5000`
+O servidor estará disponível em `http://localhost:8000`
 
 ## 📡 API Endpoints
 
@@ -513,7 +516,7 @@ O sistema implementa autenticação JWT completa com as melhores práticas de se
 ### Quick Start
 1. **Cadastrar um usuário**:
 ```bash
-curl -X POST http://localhost:5000/api/auth/cadastro \
+curl -X POST http://localhost:8000/api/auth/cadastro \
   -H "Content-Type: application/json" \
   -d '{
     "cpf": "12345678901",
@@ -524,7 +527,7 @@ curl -X POST http://localhost:5000/api/auth/cadastro \
 ```
 2. **Fazer login**:
 ```bash
-curl -X POST http://localhost:5000/api/auth/login \
+curl -X POST http://localhost:8000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "joao@exemplo.com",
@@ -533,7 +536,7 @@ curl -X POST http://localhost:5000/api/auth/login \
 ```
 3. **Acessar rota protegida**:
 ```bash
-curl -X GET http://localhost:5000/api/auth/me \
+curl -X GET http://localhost:8000/api/auth/me \
   -H "Authorization: Bearer SEU_TOKEN_AQUI"
 ```
 ### Testar o Sistema
@@ -545,17 +548,23 @@ python app.py
 python test_auth.py
 ```
 ### Proteger Suas Rotas
-Use o decorator `@token_required` para proteger endpoints:
+Use a dependência do FastAPI para proteger endpoints:
 ```python
-from src.geobot_plataforma_backend.security.middleware.auth_middleware import token_required, get_usuario_atual
-@app.route('/api/recurso-protegido', methods=['GET'])
-@token_required
-def recurso_protegido():
-    usuario = get_usuario_atual()
-    return jsonify({
-        'mensagem': f'Olá, {usuario["nome"]}!',
-        'usuario': usuario
-    })
+from fastapi import APIRouter, Depends
+from src.geobot_plataforma_backend.security.dependencies import get_current_user
+
+router = APIRouter()
+
+@router.get('/api/recurso-protegido')
+def recurso_protegido(usuario=Depends(get_current_user)):
+  return {
+    'mensagem': f'Olá, {usuario.nome}!',
+    'usuario': {
+      'id': usuario.id,
+      'nome': usuario.nome,
+      'email': usuario.email
+    }
+  }
 ```
 ### Documentação Completa
 - 📘 [Documentação de Autenticação](docs/AUTHENTICATION.md) - Guia completo
@@ -581,11 +590,11 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 ## 📚 Documentação Swagger/OpenAPI
 O projeto conta com documentação interativa completa usando **Swagger UI**.
 ### Acesso Rápido
-- **Swagger UI**: http://localhost:5000/api/docs
-- **Swagger JSON**: http://localhost:5000/swagger.json
+- **Swagger UI**: http://localhost:8000/api/docs
+- **Swagger JSON**: http://localhost:8000/swagger.json
 ### Como Usar
 1. **Iniciar servidor**: `python app.py`
-2. **Acessar documentação**: http://localhost:5000/api/docs
+2. **Acessar documentação**: http://localhost:8000/api/docs
 3. **Testar endpoints**: Use o botão "Try it out"
 4. **Autenticar**: Clique em "Authorize" e adicione: `Bearer {token}`
 ### Recursos

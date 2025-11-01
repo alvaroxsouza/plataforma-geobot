@@ -33,4 +33,4 @@ ENV GEOBOT_ENV=production
 EXPOSE 8000
 
 # Comando para iniciar a aplicação
-CMD ["python", "app.py"]
+CMD ["uvicorn", "src.geobot_plataforma_backend.app_fastapi:app", "--host", "0.0.0.0", "--port", "8000"]
