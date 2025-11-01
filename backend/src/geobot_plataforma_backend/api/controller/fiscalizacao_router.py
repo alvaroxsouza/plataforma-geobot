@@ -22,7 +22,7 @@ from src.geobot_plataforma_backend.domain.entity.denuncia import Denuncia
 from src.geobot_plataforma_backend.security.dependencies import get_current_user
 from src.geobot_plataforma_backend.domain.entity.enums import StatusFiscalizacao
 
-router = APIRouter()
+router = APIRouter(prefix='/fiscalizacao', tags=['fiscalizacao'])
 
 
 class FiscalizacaoCreate(BaseModel):
@@ -43,11 +43,11 @@ def _to_dict(f: Fiscalizacao):
         'fiscal_id': f.fiscal_id,
         'codigo': f.codigo,
         'status': f.status,
-        'data_inicializacao': f.data_inicializacao.isoformat() if f.data_inicializacao else None,
-        'data_conclusao': f.data_conclusao.isoformat() if f.data_conclusao else None,
+        'data_inicializacao': f.data_inicializacao.isoformat() if f.data_inicializacao is not None else None,
+        'data_conclusao': f.data_conclusao.isoformat() if f.data_conclusao is not None else None,
         'observacoes': f.observacoes,
-        'created_at': f.created_at.isoformat() if f.created_at else None,
-        'updated_at': f.updated_at.isoformat() if f.updated_at else None,
+        'created_at': f.created_at.isoformat() if f.created_at is not None else None,
+        'updated_at': f.updated_at.isoformat() if f.updated_at is not None else None,
     }
 
 
@@ -127,7 +127,7 @@ def assign_fiscalizacao(id: int, payload: FiscalizacaoAssign, current_user=Depen
         f = db.query(Fiscalizacao).filter(Fiscalizacao.id == id).first()
         if not f:
             raise HTTPException(status_code=404, detail='Fiscalização não encontrada')
-        f.fiscal_id = payload.fiscal_id
+        setattr(f, 'fiscal_id', payload.fiscal_id)
         db.add(f)
         db.commit()
         db.refresh(f)

@@ -10,7 +10,7 @@ from src.geobot_plataforma_backend.security.dependencies import get_current_user
 from src.geobot_plataforma_backend.api.dtos.usuario_dto import UsuarioCadastroDTO, UsuarioLoginDTO
 
 
-router = APIRouter()
+router = APIRouter(tags=['auth'])
 
 
 class UsuarioCadastroModel(BaseModel):

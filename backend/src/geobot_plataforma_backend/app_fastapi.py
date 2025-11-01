@@ -9,8 +9,24 @@ from src.geobot_plataforma_backend.core.database import check_db_connection
 
 # Routers
 from src.geobot_plataforma_backend.api.controller.auth_router import router as auth_router
-from src.geobot_plataforma_backend.api.controller.complaints_router import router as complaints_router
+from src.geobot_plataforma_backend.api.controller.denuncias_router import router as denuncias_router
 from src.geobot_plataforma_backend.api.controller.fiscalizacao_router import router as fiscalizacao_router
+
+
+tags_metadata = [
+    {
+        'name': 'auth',
+        'description': 'Endpoints de autenticação e gerenciamento de sessões de usuários.'
+    },
+    {
+        'name': 'denuncias',
+        'description': 'Operações de criação, consulta e atualização de denúncias.'
+    },
+    {
+        'name': 'fiscalizacao',
+        'description': 'Fluxo de fiscalização relacionado às denúncias.'
+    },
+]
 
 
 def create_app() -> FastAPI:
@@ -19,7 +35,8 @@ def create_app() -> FastAPI:
         version='1.0',
         docs_url='/api/docs',
         redoc_url='/api/redoc',
-        openapi_url='/swagger.json'
+        openapi_url='/swagger.json',
+        openapi_tags=tags_metadata,
     )
 
     # CORS
@@ -39,7 +56,7 @@ def create_app() -> FastAPI:
     # incluir routers
     app.include_router(auth_router, prefix="/api/auth")
     # Routers compatíveis com frontend
-    app.include_router(complaints_router, prefix="")
+    app.include_router(denuncias_router, prefix="")
     app.include_router(fiscalizacao_router, prefix="")
 
     @app.get('/')
