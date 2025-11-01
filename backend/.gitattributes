@@ -1,0 +1,27 @@
+# Git LFS (Large File Storage) - caso necessário no futuro
+# *.pdf filter=lfs diff=lfs merge=lfs -text
+# *.zip filter=lfs diff=lfs merge=lfs -text
+
+# Garantir que arquivos Python compilados nunca sejam rastreados
+*.pyc binary
+*.pyo binary
+__pycache__/ export-ignore
+
+# Normalização de line endings
+*.py text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+*.ini text eol=lf
+*.sh text eol=lf
+
+# Arquivos que devem permanecer como estão
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary

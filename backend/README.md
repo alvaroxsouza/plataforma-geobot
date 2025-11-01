@@ -413,14 +413,71 @@ GET /
 Retorna informações básicas sobre a API.
 
 ```
+## 🧪 Testes
+
+O projeto possui uma suite de testes completa com pytest.
+
+### Estrutura de Testes
+```
+tests/
+├── conftest.py              # Fixtures globais
+├── integration/             # Testes HTTP (TestClient)
+│   ├── test_auth.py         # 14 testes de autenticação
+│   └── test_denuncias.py    # 13 testes de denúncias
+└── unit/                    # Testes de lógica isolada
+    ├── test_denuncia_service.py  # 9 testes de service
+    └── test_denuncia_dtos.py     # 8 testes de DTOs
+```
+
+### Executar Testes
+
+```bash
+# Instalar dependências
+pip install pytest pytest-cov
+
+# Todos os testes
+pytest
+
+# Com coverage
+pytest --cov=src --cov-report=html
+
+# Apenas integração
+pytest tests/integration/
+
+# Apenas unitários
+pytest tests/unit/
+
+# Comandos úteis
+source COMANDOS_TESTES.sh
+```
+
+### Estatísticas
+- **Total:** 44 testes automatizados
+- **Integração:** 27 testes (auth + denúncias)
+- **Unitários:** 17 testes (services + DTOs)
+- **Coverage esperado:** ~80%
+
+📖 **Documentação completa**: [tests/README.md](tests/README.md)
+
 ## 📚 Documentação Adicional
 
+### Arquitetura e Refatorações
+- [MIGRACAO_PYDANTIC_DTOs.md](MIGRACAO_PYDANTIC_DTOs.md) - Migração para Pydantic
+- [REFATORACAO_INJECAO_DEPENDENCIA.md](REFATORACAO_INJECAO_DEPENDENCIA.md) - Injeção de dependência
+- [REFATORACAO_ROUTERS_SERVICES.md](REFATORACAO_ROUTERS_SERVICES.md) - Routers e services
+- [ESTRUTURACAO_TESTES_LIMPEZA.md](ESTRUTURACAO_TESTES_LIMPEZA.md) - Estruturação de testes
+
+### Configuração e Deploy
 - [DYNACONF.md](DYNACONF.md) - Guia completo do Dynaconf (configurações)
 - [DOCKER.md](DOCKER.md) - Guia completo do Docker
 - [alembic/README.md](alembic/README.md) - Documentação das migrations
 - [COMANDOS.md](COMANDOS.md) - Referência de comandos
 - [INICIO_RAPIDO.md](INICIO_RAPIDO.md) - Guia de início rápido
 - [RESUMO_DYNACONF_DOCKER.md](RESUMO_DYNACONF_DOCKER.md) - Resumo da configuração
+
+### Testes
+- [tests/README.md](tests/README.md) - Documentação completa de testes
+- [COMANDOS_TESTES.sh](COMANDOS_TESTES.sh) - Comandos úteis para testes
 
 GET /api/v1/
 ```
