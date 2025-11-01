@@ -14,9 +14,10 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 import uuid
 
-from src.geobot_plataforma_backend.core.database import SessionLocal
+from src.geobot_plataforma_backend.core.database import get_db
 from src.geobot_plataforma_backend.domain.entity.fiscalizacao import Fiscalizacao
 from src.geobot_plataforma_backend.domain.entity.denuncia import Denuncia
 from src.geobot_plataforma_backend.security.dependencies import get_current_user
@@ -52,88 +53,86 @@ def _to_dict(f: Fiscalizacao):
 
 
 @router.post('/', status_code=201)
-def create_fiscalizacao(payload: FiscalizacaoCreate, current_user=Depends(get_current_user)):
+def create_fiscalizacao(
+    payload: FiscalizacaoCreate, 
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     if not current_user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Autenticação requerida')
 
-    db = SessionLocal()
-    try:
-        denuncia = db.query(Denuncia).filter(Denuncia.id == payload.complaint_id).first()
-        if not denuncia:
-            raise HTTPException(status_code=404, detail='Denúncia não encontrada')
+    denuncia = db.query(Denuncia).filter(Denuncia.id == payload.complaint_id).first()
+    if not denuncia:
+        raise HTTPException(status_code=404, detail='Denúncia não encontrada')
 
-        # Gerar código único simples
-        codigo = f"FISC-{uuid.uuid4().hex[:8]}"
+    # Gerar código único simples
+    codigo = f"FISC-{uuid.uuid4().hex[:8]}"
 
-        fiscalizacao = Fiscalizacao(
-            denuncia_id=denuncia.id,
-            fiscal_id=current_user.id,
-            codigo=codigo,
-            observacoes=payload.observacoes,
-            status=StatusFiscalizacao.AGUARDANDO
-        )
-        db.add(fiscalizacao)
-        db.commit()
-        db.refresh(fiscalizacao)
-        return JSONResponse(_to_dict(fiscalizacao), status_code=201)
-    finally:
-        db.close()
+    fiscalizacao = Fiscalizacao(
+        denuncia_id=denuncia.id,
+        fiscal_id=current_user.id,
+        codigo=codigo,
+        observacoes=payload.observacoes,
+        status=StatusFiscalizacao.AGUARDANDO
+    )
+    db.add(fiscalizacao)
+    db.commit()
+    db.refresh(fiscalizacao)
+    return JSONResponse(_to_dict(fiscalizacao), status_code=201)
 
 
 @router.get('/')
-def list_fiscalizacoes(status_filter: Optional[str] = None, fiscal_id: Optional[int] = None, limit: int = 50, offset: int = 0):
-    db = SessionLocal()
-    try:
-        query = db.query(Fiscalizacao)
-        if status_filter:
-            query = query.filter(Fiscalizacao.status == status_filter)
-        if fiscal_id:
-            query = query.filter(Fiscalizacao.fiscal_id == fiscal_id)
-        results = query.limit(limit).offset(offset).all()
-        return [_to_dict(r) for r in results]
-    finally:
-        db.close()
+def list_fiscalizacoes(
+    status_filter: Optional[str] = None, 
+    fiscal_id: Optional[int] = None, 
+    limit: int = 50, 
+    offset: int = 0,
+    db: Session = Depends(get_db)
+):
+    query = db.query(Fiscalizacao)
+    if status_filter:
+        query = query.filter(Fiscalizacao.status == status_filter)
+    if fiscal_id:
+        query = query.filter(Fiscalizacao.fiscal_id == fiscal_id)
+    results = query.limit(limit).offset(offset).all()
+    return [_to_dict(r) for r in results]
 
 
 @router.get('/minhas')
-def list_my_fiscalizacoes(current_user=Depends(get_current_user)):
+def list_my_fiscalizacoes(
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     if not current_user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Autenticação requerida')
-    db = SessionLocal()
-    try:
-        results = db.query(Fiscalizacao).filter(Fiscalizacao.fiscal_id == current_user.id).all()
-        return [_to_dict(r) for r in results]
-    finally:
-        db.close()
+    results = db.query(Fiscalizacao).filter(Fiscalizacao.fiscal_id == current_user.id).all()
+    return [_to_dict(r) for r in results]
 
 
 @router.get('/{id}')
-def get_fiscalizacao(id: int):
-    db = SessionLocal()
-    try:
-        f = db.query(Fiscalizacao).filter(Fiscalizacao.id == id).first()
-        if not f:
-            raise HTTPException(status_code=404, detail='Fiscalização não encontrada')
-        return _to_dict(f)
-    finally:
-        db.close()
+def get_fiscalizacao(id: int, db: Session = Depends(get_db)):
+    f = db.query(Fiscalizacao).filter(Fiscalizacao.id == id).first()
+    if not f:
+        raise HTTPException(status_code=404, detail='Fiscalização não encontrada')
+    return _to_dict(f)
 
 
 @router.patch('/{id}/atribuir')
-def assign_fiscalizacao(id: int, payload: FiscalizacaoAssign, current_user=Depends(get_current_user)):
+def assign_fiscalizacao(
+    id: int, 
+    payload: FiscalizacaoAssign, 
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     # Para simplicidade permitimos que qualquer usuário autenticado atribua — ajuste a autorização conforme regras de negócio
-    db = SessionLocal()
-    try:
-        f = db.query(Fiscalizacao).filter(Fiscalizacao.id == id).first()
-        if not f:
-            raise HTTPException(status_code=404, detail='Fiscalização não encontrada')
-        setattr(f, 'fiscal_id', payload.fiscal_id)
-        db.add(f)
-        db.commit()
-        db.refresh(f)
-        return _to_dict(f)
-    finally:
-        db.close()
+    f = db.query(Fiscalizacao).filter(Fiscalizacao.id == id).first()
+    if not f:
+        raise HTTPException(status_code=404, detail='Fiscalização não encontrada')
+    setattr(f, 'fiscal_id', payload.fiscal_id)
+    db.add(f)
+    db.commit()
+    db.refresh(f)
+    return _to_dict(f)
 
 
 @router.get('/{id}/historico')

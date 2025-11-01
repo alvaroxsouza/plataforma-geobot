@@ -1,7 +1,8 @@
 """DTOs para operações de denúncia"""
-from dataclasses import dataclass
 from typing import Optional
 from datetime import datetime
+
+from pydantic import BaseModel, field_validator, Field
 
 from src.geobot_plataforma_backend.domain.entity.enums import (
     StatusDenuncia,
@@ -10,42 +11,62 @@ from src.geobot_plataforma_backend.domain.entity.enums import (
 )
 
 
-@dataclass
-class DenunciaCriarDTO:
+class DenunciaCriarDTO(BaseModel):
     """DTO para criação de denúncia"""
     categoria: CategoriaDenuncia
     prioridade: Prioridade
     observacao: str
     # Dados do endereço
-    logradouro: str
-    numero: Optional[str]
-    complemento: Optional[str]
+    logradouro: str = Field(..., min_length=5, description="Logradouro deve ter pelo menos 5 caracteres")
+    numero: Optional[str] = None
+    complemento: Optional[str] = None
     bairro: str
     cidade: str
-    estado: str
+    estado: str = Field(..., min_length=2, max_length=2, description="Estado (UF) com 2 caracteres")
     cep: str
-    latitude: Optional[float]
-    longitude: Optional[float]
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
-    def __post_init__(self):
-        """Validações básicas"""
-        if not self.logradouro or len(self.logradouro.strip()) < 5:
+    @field_validator('logradouro')
+    @classmethod
+    def validar_logradouro(cls, v: str) -> str:
+        """Valida se o logradouro tem pelo menos 5 caracteres (sem espaços)"""
+        if not v or len(v.strip()) < 5:
             raise ValueError("Logradouro deve ter pelo menos 5 caracteres")
-        if len(self.estado) != 2:
+        return v
+
+    @field_validator('estado')
+    @classmethod
+    def validar_estado(cls, v: str) -> str:
+        """Valida se o estado tem exatamente 2 caracteres"""
+        if len(v) != 2:
             raise ValueError("Estado deve ter 2 caracteres (UF)")
-        if self.cep and not self.cep.replace("-", "").isdigit():
+        return v.upper()
+
+    @field_validator('cep')
+    @classmethod
+    def validar_cep(cls, v: str) -> str:
+        """Valida formato do CEP"""
+        if v and not v.replace("-", "").isdigit():
             raise ValueError("CEP inválido")
+        return v
+
+    class Config:
+        from_attributes = True
+        use_enum_values = False
 
 
-@dataclass
-class DenunciaAtualizarDTO:
+class DenunciaAtualizarDTO(BaseModel):
     """DTO para atualização de denúncia (apenas campos editáveis)"""
     observacao: Optional[str] = None
     prioridade: Optional[Prioridade] = None
 
+    class Config:
+        from_attributes = True
+        use_enum_values = False
 
-@dataclass
-class DenunciaResponseDTO:
+
+class DenunciaResponseDTO(BaseModel):
     """DTO para resposta com dados da denúncia"""
     id: int
     uuid: str
@@ -101,4 +122,11 @@ class DenunciaResponseDTO:
             "endereco": self.endereco,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
+        }
+
+    class Config:
+        from_attributes = True
+        use_enum_values = False
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
         }

@@ -3,8 +3,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
 from typing import Optional
+from sqlalchemy.orm import Session
 
-from src.geobot_plataforma_backend.core.database import SessionLocal
+from src.geobot_plataforma_backend.core.database import get_db
 from src.geobot_plataforma_backend.domain.service.auth_service import AuthService
 from src.geobot_plataforma_backend.security.dependencies import get_current_user
 from src.geobot_plataforma_backend.api.dtos.usuario_dto import UsuarioCadastroDTO, UsuarioLoginDTO
@@ -26,7 +27,7 @@ class UsuarioLoginModel(BaseModel):
 
 
 @router.post('/cadastro', status_code=201)
-def cadastrar_usuario(body: UsuarioCadastroModel):
+def cadastrar_usuario(body: UsuarioCadastroModel, db: Session = Depends(get_db)):
     try:
         dados_dto = UsuarioCadastroDTO(
             cpf=body.cpf,
@@ -35,13 +36,9 @@ def cadastrar_usuario(body: UsuarioCadastroModel):
             senha=body.senha
         )
 
-        db = SessionLocal()
-        try:
-            auth_service = AuthService(db)
-            usuario_criado = auth_service.cadastrar_usuario(dados_dto)
-            return JSONResponse({'mensagem': 'Usuário cadastrado com sucesso', 'usuario': usuario_criado.to_dict()}, status_code=201)
-        finally:
-            db.close()
+        auth_service = AuthService(db)
+        usuario_criado = auth_service.cadastrar_usuario(dados_dto)
+        return JSONResponse({'mensagem': 'Usuário cadastrado com sucesso', 'usuario': usuario_criado.to_dict()}, status_code=201)
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail={'erro': 'Erro de validação', 'mensagem': str(e)})
@@ -50,18 +47,14 @@ def cadastrar_usuario(body: UsuarioCadastroModel):
 
 
 @router.post('/login')
-def login(body: UsuarioLoginModel):
+def login(body: UsuarioLoginModel, db: Session = Depends(get_db)):
     try:
         dados_dto = UsuarioLoginDTO(email=body.email, senha=body.senha)
 
-        db = SessionLocal()
-        try:
-            auth_service = AuthService(db)
-            resultado = auth_service.autenticar(dados_dto)
-            resp = {'mensagem': 'Login realizado com sucesso', **resultado.to_dict()}
-            return JSONResponse(resp, status_code=200)
-        finally:
-            db.close()
+        auth_service = AuthService(db)
+        resultado = auth_service.autenticar(dados_dto)
+        resp = {'mensagem': 'Login realizado com sucesso', **resultado.to_dict()}
+        return JSONResponse(resp, status_code=200)
 
     except ValueError as e:
         raise HTTPException(status_code=401, detail={'erro': 'Credenciais inválidas', 'mensagem': str(e)})

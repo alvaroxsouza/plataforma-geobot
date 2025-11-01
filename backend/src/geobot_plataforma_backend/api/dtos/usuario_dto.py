@@ -1,51 +1,65 @@
 """
 DTOs para operações de usuário
 """
-from dataclasses import dataclass
 from typing import Optional
 from datetime import datetime
 
+from pydantic import BaseModel, EmailStr, field_validator, Field
 
-@dataclass
-class UsuarioCadastroDTO:
+
+class UsuarioCadastroDTO(BaseModel):
     """DTO para cadastro de novo usuário"""
-    cpf: str
-    nome: str
-    email: str
-    senha: str
+    cpf: str = Field(..., min_length=11, max_length=11, description="CPF com exatamente 11 dígitos numéricos")
+    nome: str = Field(..., min_length=3, description="Nome deve ter pelo menos 3 caracteres")
+    email: EmailStr
+    senha: str = Field(..., min_length=8, description="Senha deve ter pelo menos 8 caracteres")
 
-    def __post_init__(self):
-        """Validação básica dos dados"""
-        if not self.cpf or len(self.cpf) != 11 or not self.cpf.isdigit():
+    @field_validator('cpf')
+    @classmethod
+    def validar_cpf(cls, v: str) -> str:
+        """Valida se o CPF tem exatamente 11 dígitos numéricos"""
+        if not v or len(v) != 11 or not v.isdigit():
             raise ValueError("CPF deve conter exatamente 11 dígitos numéricos")
-        
-        if not self.nome or len(self.nome.strip()) < 3:
+        return v
+
+    @field_validator('nome')
+    @classmethod
+    def validar_nome(cls, v: str) -> str:
+        """Valida se o nome tem pelo menos 3 caracteres"""
+        if not v or len(v.strip()) < 3:
             raise ValueError("Nome deve ter pelo menos 3 caracteres")
-        
-        if not self.email or '@' not in self.email:
-            raise ValueError("Email inválido")
-        
-        if not self.senha or len(self.senha) < 8:
+        return v
+
+    @field_validator('senha')
+    @classmethod
+    def validar_senha(cls, v: str) -> str:
+        """Valida se a senha tem pelo menos 8 caracteres"""
+        if not v or len(v) < 8:
             raise ValueError("Senha deve ter pelo menos 8 caracteres")
+        return v
+
+    class Config:
+        from_attributes = True
 
 
-@dataclass
-class UsuarioLoginDTO:
+class UsuarioLoginDTO(BaseModel):
     """DTO para login de usuário"""
-    email: str
-    senha: str
+    email: EmailStr
+    senha: str = Field(..., min_length=1, description="Senha é obrigatória")
 
-    def __post_init__(self):
-        """Validação básica dos dados"""
-        if not self.email or '@' not in self.email:
-            raise ValueError("Email inválido")
-        
-        if not self.senha:
+    @field_validator('senha')
+    @classmethod
+    def validar_senha(cls, v: str) -> str:
+        """Valida se a senha foi fornecida"""
+        if not v:
             raise ValueError("Senha é obrigatória")
+        return v
+
+    class Config:
+        from_attributes = True
 
 
-@dataclass
-class UsuarioResponseDTO:
+class UsuarioResponseDTO(BaseModel):
     """DTO para resposta com dados do usuário (sem informações sensíveis)"""
     id: int
     uuid: str
@@ -83,9 +97,14 @@ class UsuarioResponseDTO:
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
 
+    class Config:
+        from_attributes = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
 
-@dataclass
-class LoginResponseDTO:
+
+class LoginResponseDTO(BaseModel):
     """DTO para resposta de login bem-sucedido"""
     access_token: str
     token_type: str
@@ -101,9 +120,11 @@ class LoginResponseDTO:
             'usuario': self.usuario.to_dict()
         }
 
+    class Config:
+        from_attributes = True
 
-@dataclass
-class TokenPayloadDTO:
+
+class TokenPayloadDTO(BaseModel):
     """DTO para o payload do token JWT"""
     sub: str  # subject (user uuid)
     usuario_id: int
@@ -111,4 +132,7 @@ class TokenPayloadDTO:
     exp: int  # expiration timestamp
     iat: int  # issued at timestamp
     jti: Optional[str] = None  # JWT ID (para controle de revogação)
+
+    class Config:
+        from_attributes = True
 
