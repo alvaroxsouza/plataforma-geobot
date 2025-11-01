@@ -4,7 +4,7 @@ DTOs para operações de usuário
 from typing import Optional
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, field_validator, Field
+from pydantic import BaseModel, EmailStr, validator, Field
 
 
 class UsuarioCadastroDTO(BaseModel):
@@ -14,24 +14,21 @@ class UsuarioCadastroDTO(BaseModel):
     email: EmailStr
     senha: str = Field(..., min_length=8, description="Senha deve ter pelo menos 8 caracteres")
 
-    @field_validator('cpf')
-    @classmethod
+    @validator('cpf')
     def validar_cpf(cls, v: str) -> str:
         """Valida se o CPF tem exatamente 11 dígitos numéricos"""
         if not v or len(v) != 11 or not v.isdigit():
             raise ValueError("CPF deve conter exatamente 11 dígitos numéricos")
         return v
 
-    @field_validator('nome')
-    @classmethod
+    @validator('nome')
     def validar_nome(cls, v: str) -> str:
         """Valida se o nome tem pelo menos 3 caracteres"""
         if not v or len(v.strip()) < 3:
             raise ValueError("Nome deve ter pelo menos 3 caracteres")
         return v
 
-    @field_validator('senha')
-    @classmethod
+    @validator('senha')
     def validar_senha(cls, v: str) -> str:
         """Valida se a senha tem pelo menos 8 caracteres"""
         if not v or len(v) < 8:
@@ -47,8 +44,7 @@ class UsuarioLoginDTO(BaseModel):
     email: EmailStr
     senha: str = Field(..., min_length=1, description="Senha é obrigatória")
 
-    @field_validator('senha')
-    @classmethod
+    @validator('senha')
     def validar_senha(cls, v: str) -> str:
         """Valida se a senha foi fornecida"""
         if not v:

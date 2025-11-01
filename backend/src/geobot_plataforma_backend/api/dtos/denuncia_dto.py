@@ -2,7 +2,7 @@
 from typing import Optional
 from datetime import datetime
 
-from pydantic import BaseModel, field_validator, Field
+from pydantic import BaseModel, validator, Field
 
 from src.geobot_plataforma_backend.domain.entity.enums import (
     StatusDenuncia,
@@ -27,24 +27,21 @@ class DenunciaCriarDTO(BaseModel):
     latitude: Optional[float] = None
     longitude: Optional[float] = None
 
-    @field_validator('logradouro')
-    @classmethod
+    @validator('logradouro')
     def validar_logradouro(cls, v: str) -> str:
         """Valida se o logradouro tem pelo menos 5 caracteres (sem espaços)"""
         if not v or len(v.strip()) < 5:
             raise ValueError("Logradouro deve ter pelo menos 5 caracteres")
         return v
 
-    @field_validator('estado')
-    @classmethod
+    @validator('estado')
     def validar_estado(cls, v: str) -> str:
         """Valida se o estado tem exatamente 2 caracteres"""
         if len(v) != 2:
             raise ValueError("Estado deve ter 2 caracteres (UF)")
         return v.upper()
 
-    @field_validator('cep')
-    @classmethod
+    @validator('cep')
     def validar_cep(cls, v: str) -> str:
         """Valida formato do CEP"""
         if v and not v.replace("-", "").isdigit():
