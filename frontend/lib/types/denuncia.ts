@@ -1,13 +1,35 @@
+/**
+ * Status de uma denúncia conforme Swagger
+ * 
+ * - pendente: Denúncia criada, aguardando análise
+ * - em_analise: Denúncia sendo analisada pela equipe
+ * - em_fiscalizacao: Denúncia em processo de fiscalização
+ * - concluida: Denúncia resolvida com sucesso
+ * - arquivada: Denúncia arquivada
+ * - cancelada: Denúncia cancelada pelo usuário
+ */
 export type StatusDenuncia = 
   | "pendente" 
   | "em_analise" 
   | "em_fiscalizacao" 
-  | "resolvida" 
-  | "rejeitada"
-  | "arquivada";
+  | "concluida" 
+  | "arquivada"
+  | "cancelada";
 
-export type PrioridadeDenuncia = "baixa" | "media" | "alta" | "urgente";
+/**
+ * Prioridade de uma denúncia conforme Swagger
+ */
+export type Prioridade = "baixa" | "media" | "alta" | "urgente";
 
+/**
+ * Categoria de uma denúncia conforme Swagger
+ * 
+ * - ambiental: Problemas ambientais (poluição, desmatamento, etc.)
+ * - sanitaria: Problemas sanitários (esgoto, lixo, etc.)
+ * - construcao_irregular: Construções irregulares ou sem autorização
+ * - poluicao_sonora: Poluição sonora e barulho excessivo
+ * - outros: Outras categorias não especificadas
+ */
 export type CategoriaDenuncia = 
   | "calcada"
   | "rua"
@@ -15,65 +37,80 @@ export type CategoriaDenuncia =
   | "semaforo"
   | "sinalizacao"
   | "iluminacao"
-  | "lixo"
+  | "lixo_entulho"
   | "poluicao"
   | "barulho"
-  | "outro";
+  | "outros";
 
-export interface LocalizacaoDenuncia {
-  latitude: number;
-  longitude: number;
-  endereco: string;
-  bairro?: string;
+/**
+ * Interface para endereço da denúncia
+ */
+export interface EnderecoDenuncia {
+  logradouro: string;
+  numero?: string | null;
+  complemento?: string | null;
+  bairro: string;
   cidade: string;
   estado: string;
-  cep?: string;
+  cep: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
-export interface ImagemDenuncia {
-  id: string;
-  url: string;
-  thumbnail?: string;
-  descricao?: string;
-  data_upload: string;
+/**
+ * Interface para dados do usuário denunciante
+ */
+export interface UsuarioDenuncia {
+  nome: string;
+  email: string;
 }
 
+/**
+ * Interface para denúncia completa conforme API
+ */
 export interface Denuncia {
-  id: string;
-  titulo: string;
-  descricao: string;
+  id: number;
+  uuid: string;
   categoria: CategoriaDenuncia;
   status: StatusDenuncia;
-  prioridade: PrioridadeDenuncia;
-  localizacao: LocalizacaoDenuncia;
-  imagens: ImagemDenuncia[];
-  denunciante_id: string;
-  denunciante_nome: string;
-  denunciante_cpf?: string;
-  fiscalizador_id?: string;
-  fiscalizador_nome?: string;
-  data_criacao: string;
-  data_atualizacao: string;
-  data_resolucao?: string;
-  observacoes?: string;
-  protocolo: string;
+  prioridade: Prioridade;
+  observacao: string;
+  usuario: UsuarioDenuncia;
+  endereco: EnderecoDenuncia;
+  created_at: string;
+  updated_at: string;
 }
 
+/**
+ * Interface para filtros de busca de denúncias
+ */
 export interface FiltroDenuncia {
-  status?: StatusDenuncia[];
-  prioridade?: PrioridadeDenuncia[];
-  categoria?: CategoriaDenuncia[];
-  data_inicio?: string;
-  data_fim?: string;
-  denunciante_id?: string;
-  fiscalizador_id?: string;
-  busca?: string;
+  status?: StatusDenuncia;
+  todas?: boolean;
 }
 
-export interface CreateDenunciaData {
-  titulo: string;
-  descricao: string;
+/**
+ * Interface para criação de denúncia conforme Swagger
+ */
+export interface DenunciaCriar {
   categoria: CategoriaDenuncia;
-  localizacao: LocalizacaoDenuncia;
-  imagens?: File[];
+  prioridade: Prioridade;
+  observacao: string;
+  logradouro: string;
+  numero?: string | null;
+  complemento?: string | null;
+  bairro: string;
+  cidade: string;
+  estado: string;
+  cep: string;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+/**
+ * Interface para atualização de denúncia
+ */
+export interface DenunciaAtualizar {
+  observacao?: string | null;
+  prioridade?: Prioridade | null;
 }

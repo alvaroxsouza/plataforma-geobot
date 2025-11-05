@@ -12,7 +12,24 @@ from src.geobot_plataforma_backend.domain.entity.enums import (
 
 
 class DenunciaCriarDTO(BaseModel):
-    """DTO para criação de denúncia"""
+    """DTO para criação de denúncia
+    
+    Campos obrigatórios conforme Swagger:
+    - categoria: Categoria da denúncia
+    - prioridade: Prioridade da denúncia
+    - observacao: Descrição detalhada do problema
+    - logradouro: Nome da rua/avenida
+    - bairro: Nome do bairro
+    - cidade: Nome da cidade
+    - estado: Sigla do estado (UF)
+    - cep: Código postal
+    
+    Campos opcionais:
+    - numero: Número do endereço
+    - complemento: Complemento do endereço
+    - latitude: Coordenada geográfica
+    - longitude: Coordenada geográfica
+    """
     categoria: CategoriaDenuncia
     prioridade: Prioridade
     observacao: str
@@ -54,7 +71,15 @@ class DenunciaCriarDTO(BaseModel):
 
 
 class DenunciaAtualizarDTO(BaseModel):
-    """DTO para atualização de denúncia (apenas campos editáveis)"""
+    """DTO para atualização de denúncia
+    
+    Permite atualizar apenas os campos editáveis pelo usuário:
+    - observacao: Nova descrição do problema (opcional)
+    - prioridade: Nova prioridade da denúncia (opcional)
+    
+    Nota: Apenas denúncias com status 'pendente' podem ser atualizadas.
+    Apenas o criador da denúncia pode realizar esta operação.
+    """
     observacao: Optional[str] = None
     prioridade: Optional[Prioridade] = None
 

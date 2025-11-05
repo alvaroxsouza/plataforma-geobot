@@ -57,8 +57,10 @@ def login(body: UsuarioLoginModel, db: Session = Depends(get_db)):
         return JSONResponse(resp, status_code=200)
 
     except ValueError as e:
+        print(e)
         raise HTTPException(status_code=401, detail={'erro': 'Credenciais inválidas', 'mensagem': str(e)})
     except Exception as e:
+        print(e)
         raise HTTPException(status_code=500, detail={'erro': 'Erro interno do servidor', 'mensagem': 'Ocorreu um erro ao processar sua solicitação'})
 
 

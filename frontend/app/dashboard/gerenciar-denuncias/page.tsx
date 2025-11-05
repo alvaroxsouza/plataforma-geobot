@@ -34,18 +34,19 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { complaintsService, ComplaintResponse, ComplaintStatus } from "@/services/complaints";
+import { servicoDenuncias, DenunciaResposta, StatusDenuncia } from "@/services/denuncias";
 import { fiscalizacaoService } from "@/services/fiscalizacao";
 import { toast } from "sonner";
 
 // Badge de status
-const StatusBadge = ({ status }: { status: ComplaintStatus }) => {
-  const variants: Record<ComplaintStatus, { variant: "default" | "secondary" | "destructive" | "outline", label: string, color?: string }> = {
-    PENDING: { variant: "secondary", label: "Pendente" },
-    IN_ANALYSIS: { variant: "default", label: "Em Análise" },
-    COMPLETED: { variant: "default", label: "Concluída", color: "bg-green-100 text-green-800 hover:bg-green-200" },
-    REJECTED: { variant: "destructive", label: "Rejeitada" },
-    CANCELLED: { variant: "outline", label: "Cancelada" }
+const StatusBadge = ({ status }: { status: StatusDenuncia }) => {
+  const variants: Record<StatusDenuncia, { variant: "default" | "secondary" | "destructive" | "outline", label: string, color?: string }> = {
+    pendente: { variant: "secondary", label: "Pendente" },
+    em_analise: { variant: "default", label: "Em Análise" },
+    em_fiscalizacao: { variant: "default", label: "Em Fiscalização", color: "bg-blue-100 text-blue-800 hover:bg-blue-200" },
+    concluida: { variant: "default", label: "Concluída", color: "bg-green-100 text-green-800 hover:bg-green-200" },
+    arquivada: { variant: "outline", label: "Arquivada" },
+    cancelada: { variant: "destructive", label: "Cancelada" }
   };
 
   const config = variants[status];
@@ -59,25 +60,25 @@ const StatusBadge = ({ status }: { status: ComplaintStatus }) => {
 
 export default function GerenciarDenunciasPage() {
   const router = useRouter();
-  const [complaints, setComplaints] = useState<ComplaintResponse[]>([]);
+  const [denuncias, setDenuncias] = useState<DenunciaResposta[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [buscaQuery, setBuscaQuery] = useState("");
   
   // Dialog de enviar para fiscalização
   const [fiscalizacaoDialog, setFiscalizacaoDialog] = useState(false);
-  const [selectedComplaint, setSelectedComplaint] = useState<ComplaintResponse | null>(null);
+  const [denunciaSelecionada, setDenunciaSelecionada] = useState<DenunciaResposta | null>(null);
   const [observacoes, setObservacoes] = useState("");
   const [dataConclusao, setDataConclusao] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   // Carregar denúncias
-  const loadComplaints = async () => {
+  const carregarDenuncias = async () => {
     try {
       setLoading(true);
-      const data = await complaintsService.getAll({
-        limit: 100,
+      const data = await servicoDenuncias.listar({
+        todas: true,
       });
-      setComplaints(data);
+      setDenuncias(data);
     } catch (error) {
       console.error("Erro ao carregar denúncias:", error);
       toast.error("Erro ao carregar denúncias");
@@ -87,19 +88,20 @@ export default function GerenciarDenunciasPage() {
   };
 
   useEffect(() => {
-    loadComplaints();
+    carregarDenuncias();
   }, []);
 
   // Filtrar denúncias pela busca
-  const complaintsFiltradas = complaints.filter(complaint => 
-    complaint.id.toString().includes(searchQuery) ||
-    complaint.street_address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    complaint.subject.toLowerCase().includes(searchQuery.toLowerCase())
+  const denunciasFiltradas = denuncias.filter(denuncia => 
+    denuncia.id.toString().includes(buscaQuery) ||
+    denuncia.endereco.logradouro.toLowerCase().includes(buscaQuery.toLowerCase()) ||
+    denuncia.observacao.toLowerCase().includes(buscaQuery.toLowerCase()) ||
+    denuncia.usuario.nome.toLowerCase().includes(buscaQuery.toLowerCase())
   );
 
   // Abrir dialog de fiscalização
-  const handleEnviarParaFiscalizacao = (complaint: ComplaintResponse) => {
-    setSelectedComplaint(complaint);
+  const handleEnviarParaFiscalizacao = (denuncia: DenunciaResposta) => {
+    setDenunciaSelecionada(denuncia);
     setObservacoes("");
     setDataConclusao("");
     setFiscalizacaoDialog(true);
@@ -107,24 +109,24 @@ export default function GerenciarDenunciasPage() {
 
   // Confirmar envio para fiscalização
   const handleConfirmarFiscalizacao = async () => {
-    if (!selectedComplaint) return;
+    if (!denunciaSelecionada) return;
 
     try {
       setSubmitting(true);
       
       // Criar fiscalização
       await fiscalizacaoService.create({
-        complaint_id: selectedComplaint.id,
+        complaint_id: denunciaSelecionada.id,
         observacoes: observacoes || null,
         data_conclusao_prevista: dataConclusao || null,
       });
 
       toast.success("Denúncia enviada para fiscalização com sucesso!");
       setFiscalizacaoDialog(false);
-      setSelectedComplaint(null);
+      setDenunciaSelecionada(null);
       
       // Recarregar denúncias
-      await loadComplaints();
+      await carregarDenuncias();
     } catch (error) {
       console.error("Erro ao criar fiscalização:", error);
       toast.error("Erro ao enviar denúncia para fiscalização");
@@ -137,22 +139,22 @@ export default function GerenciarDenunciasPage() {
   const stats = [
     { 
       label: "Total", 
-      value: complaints.length,
+      value: denuncias.length,
       color: "text-blue-600"
     },
     { 
       label: "Pendentes", 
-      value: complaints.filter(c => c.status === "PENDING").length,
+      value: denuncias.filter(d => d.status === "pendente").length,
       color: "text-yellow-600"
     },
     { 
       label: "Em Análise", 
-      value: complaints.filter(c => c.status === "IN_ANALYSIS").length,
+      value: denuncias.filter(d => d.status === "em_analise").length,
       color: "text-purple-600"
     },
     { 
       label: "Concluídas", 
-      value: complaints.filter(c => c.status === "COMPLETED").length,
+      value: denuncias.filter(d => d.status === "concluida").length,
       color: "text-green-600"
     }
   ];
@@ -210,7 +212,7 @@ export default function GerenciarDenunciasPage() {
             <div>
               <CardTitle>Lista de Denúncias</CardTitle>
               <CardDescription>
-                {complaintsFiltradas.length} denúncia(s) encontrada(s)
+                {denunciasFiltradas.length} denúncia(s) encontrada(s)
               </CardDescription>
             </div>
             <div className="flex gap-2">
@@ -218,8 +220,8 @@ export default function GerenciarDenunciasPage() {
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Buscar denúncias..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  value={buscaQuery}
+                  onChange={(e) => setBuscaQuery(e.target.value)}
                   className="pl-9"
                 />
               </div>
@@ -249,33 +251,31 @@ export default function GerenciarDenunciasPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {complaintsFiltradas.length === 0 ? (
+                  {denunciasFiltradas.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                         Nenhuma denúncia encontrada
                       </TableCell>
                     </TableRow>
                   ) : (
-                    complaintsFiltradas.map((complaint) => (
-                      <TableRow key={complaint.id} className="hover:bg-muted/50">
-                        <TableCell className="font-medium">#{complaint.id}</TableCell>
+                    denunciasFiltradas.map((denuncia) => (
+                      <TableRow key={denuncia.id} className="hover:bg-muted/50">
+                        <TableCell className="font-medium">#{denuncia.id}</TableCell>
                         <TableCell>
                           <div className="max-w-[300px]">
-                            <div className="font-medium truncate">{complaint.street_address}</div>
-                            {complaint.observacoes && (
-                              <div className="text-sm text-muted-foreground truncate">
-                                {complaint.observacoes}
-                              </div>
-                            )}
+                            <div className="font-medium truncate">{denuncia.endereco.logradouro}</div>
+                            <div className="text-sm text-muted-foreground truncate">
+                              {denuncia.endereco.bairro}, {denuncia.endereco.cidade}/{denuncia.endereco.estado}
+                            </div>
                           </div>
                         </TableCell>
-                        <TableCell className="capitalize">{complaint.subject}</TableCell>
+                        <TableCell className="capitalize">{denuncia.categoria.replace(/_/g, ' ')}</TableCell>
                         <TableCell>
-                          <StatusBadge status={complaint.status} />
+                          <StatusBadge status={denuncia.status} />
                         </TableCell>
-                        <TableCell className="text-sm">{complaint.complainant.nome}</TableCell>
+                        <TableCell className="text-sm">{denuncia.usuario.nome}</TableCell>
                         <TableCell className="text-sm">
-                          {new Date(complaint.created_at).toLocaleDateString("pt-BR")}
+                          {new Date(denuncia.created_at).toLocaleDateString("pt-BR")}
                         </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
@@ -288,14 +288,14 @@ export default function GerenciarDenunciasPage() {
                               <DropdownMenuLabel>Ações</DropdownMenuLabel>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
-                                onClick={() => router.push(`/dashboard/denuncias/${complaint.id}`)}
+                                onClick={() => router.push(`/dashboard/denuncias/${denuncia.id}`)}
                               >
                                 <Eye className="mr-2 h-4 w-4" />
                                 Ver Detalhes
                               </DropdownMenuItem>
-                              {complaint.status === "PENDING" && (
+                              {denuncia.status === "pendente" && (
                                 <DropdownMenuItem
-                                  onClick={() => handleEnviarParaFiscalizacao(complaint)}
+                                  onClick={() => handleEnviarParaFiscalizacao(denuncia)}
                                 >
                                   <Send className="mr-2 h-4 w-4" />
                                   Enviar para Fiscalização
@@ -320,7 +320,7 @@ export default function GerenciarDenunciasPage() {
           <DialogHeader>
             <DialogTitle>Enviar para Fiscalização</DialogTitle>
             <DialogDescription>
-              Criar uma nova fiscalização para a denúncia #{selectedComplaint?.id}
+              Criar uma nova fiscalização para a denúncia #{denunciaSelecionada?.id}
             </DialogDescription>
           </DialogHeader>
           

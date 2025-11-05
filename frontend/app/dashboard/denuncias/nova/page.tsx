@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
+import { servicoDenuncias } from "@/services/denuncias";
+import { CategoriaDenuncia, Prioridade } from "@/lib/types/denuncia";
 
 export default function NovaDenunciaPage() {
   const router = useRouter();
@@ -18,27 +20,38 @@ export default function NovaDenunciaPage() {
   const [images, setImages] = useState<File[]>([]);
   
   const [formData, setFormData] = useState({
-    titulo: "",
-    descricao: "",
-    categoria: "",
-    endereco: "",
+    categoria: "" as CategoriaDenuncia,
+    prioridade: "media" as Prioridade,
+    observacao: "",
+    logradouro: "",
+    numero: "",
+    complemento: "",
     bairro: "",
     cidade: "",
     estado: "",
     cep: "",
+    latitude: undefined as number | undefined,
+    longitude: undefined as number | undefined,
   });
 
   const categorias = [
     { value: "calcada", label: "Calçada" },
-    { value: "rua", label: "Rua/Via Pública" },
+    { value: "rua", label: "Rua" },
     { value: "ciclovia", label: "Ciclovia" },
     { value: "semaforo", label: "Semáforo" },
     { value: "sinalizacao", label: "Sinalização" },
-    { value: "iluminacao", label: "Iluminação Pública" },
-    { value: "lixo", label: "Lixo/Resíduos" },
+    { value: "iluminacao", label: "Iluminação" },
+    { value: "lixo_entulho", label: "Lixo e Entulho" },
     { value: "poluicao", label: "Poluição" },
-    { value: "barulho", label: "Poluição Sonora" },
-    { value: "outro", label: "Outro" },
+    { value: "barulho", label: "Barulho" },
+    { value: "outros", label: "Outros" },
+  ];
+
+  const prioridades = [
+    { value: "baixa", label: "Baixa" },
+    { value: "media", label: "Média" },
+    { value: "alta", label: "Alta" },
+    { value: "urgente", label: "Urgente" },
   ];
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,14 +69,30 @@ export default function NovaDenunciaPage() {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simular envio
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Aqui você faria a chamada à API
-    console.log("Denúncia criada:", formData, images);
-    
-    setIsLoading(false);
-    router.push("/dashboard/denuncias");
+    try {
+      // Validar campos obrigatórios
+      if (!formData.categoria || !formData.observacao || !formData.logradouro || 
+          !formData.bairro || !formData.cidade || !formData.estado || !formData.cep) {
+        alert("Por favor, preencha todos os campos obrigatórios.");
+        setIsLoading(false);
+        return;
+      }
+
+      // Criar denúncia
+      const novaDenuncia = await servicoDenuncias.criar(formData);
+      
+      console.log("Denúncia criada com sucesso:", novaDenuncia);
+      alert("Denúncia criada com sucesso!");
+      
+      // Redirecionar para a página de denúncias
+      router.push("/dashboard/denuncias");
+    } catch (error) {
+      console.error("Erro ao criar denúncia:", error);
+      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+      alert(`Erro ao criar denúncia: ${errorMessage}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -106,21 +135,10 @@ export default function NovaDenunciaPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="titulo">Título da Denúncia *</Label>
-                <Input
-                  id="titulo"
-                  placeholder="Ex: Buraco na calçada"
-                  value={formData.titulo}
-                  onChange={(e) => setFormData({...formData, titulo: e.target.value})}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="categoria">Categoria *</Label>
                 <Select
                   value={formData.categoria}
-                  onValueChange={(value: string) => setFormData({...formData, categoria: value})}
+                  onValueChange={(value) => setFormData({...formData, categoria: value as CategoriaDenuncia})}
                   required
                 >
                   <SelectTrigger>
@@ -137,12 +155,32 @@ export default function NovaDenunciaPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="descricao">Descrição *</Label>
+                <Label htmlFor="prioridade">Prioridade *</Label>
+                <Select
+                  value={formData.prioridade}
+                  onValueChange={(value) => setFormData({...formData, prioridade: value as Prioridade})}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a prioridade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {prioridades.map((prior) => (
+                      <SelectItem key={prior.value} value={prior.value}>
+                        {prior.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="observacao">Descrição/Observação *</Label>
                 <Textarea
-                  id="descricao"
+                  id="observacao"
                   placeholder="Descreva o problema em detalhes..."
-                  value={formData.descricao}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({...formData, descricao: e.target.value})}
+                  value={formData.observacao}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({...formData, observacao: e.target.value})}
                   rows={6}
                   required
                 />
@@ -163,14 +201,36 @@ export default function NovaDenunciaPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="endereco">Endereço *</Label>
+                <Label htmlFor="logradouro">Logradouro (Rua/Avenida) *</Label>
                 <Input
-                  id="endereco"
-                  placeholder="Rua, número"
-                  value={formData.endereco}
-                  onChange={(e) => setFormData({...formData, endereco: e.target.value})}
+                  id="logradouro"
+                  placeholder="Ex: Rua das Flores"
+                  value={formData.logradouro}
+                  onChange={(e) => setFormData({...formData, logradouro: e.target.value})}
                   required
                 />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="numero">Número</Label>
+                  <Input
+                    id="numero"
+                    placeholder="123"
+                    value={formData.numero}
+                    onChange={(e) => setFormData({...formData, numero: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="complemento">Complemento</Label>
+                  <Input
+                    id="complemento"
+                    placeholder="Apto 101"
+                    value={formData.complemento}
+                    onChange={(e) => setFormData({...formData, complemento: e.target.value})}
+                  />
+                </div>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
@@ -211,12 +271,13 @@ export default function NovaDenunciaPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="cep">CEP</Label>
+                  <Label htmlFor="cep">CEP *</Label>
                   <Input
                     id="cep"
                     placeholder="00000-000"
                     value={formData.cep}
                     onChange={(e) => setFormData({...formData, cep: e.target.value})}
+                    required
                   />
                 </div>
               </div>

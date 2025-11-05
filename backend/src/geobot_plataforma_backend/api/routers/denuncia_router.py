@@ -1,8 +1,20 @@
-"""Router (FastAPI) para rotas de denúncia"""
+"""Router (FastAPI) para rotas de denúncia
+
+Este módulo contém os endpoints para operações de criação, consulta e 
+atualização de denúncias no sistema Geobot Plataforma.
+
+Endpoints disponíveis:
+- GET /denuncias/: Lista denúncias do usuário ou todas (admin/fiscal)
+- POST /denuncias/: Cria uma nova denúncia
+- GET /denuncias/{id}: Busca uma denúncia específica
+- PATCH /denuncias/{id}: Atualiza uma denúncia
+- DELETE /denuncias/{id}: Deleta uma denúncia
+- PATCH /denuncias/{id}/status: Atualiza o status de uma denúncia (admin/fiscal)
+"""
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from src.geobot_plataforma_backend.core.database import get_db
@@ -25,27 +37,47 @@ router = APIRouter(prefix="/denuncias", tags=["denuncias"])
 
 
 class DenunciaCriarPayload(BaseModel):
-    categoria: CategoriaDenuncia
-    prioridade: Prioridade
-    observacao: str
-    logradouro: str
-    numero: Optional[str] = None
-    complemento: Optional[str] = None
-    bairro: str
-    cidade: str
-    estado: str
-    cep: str
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
+    """Payload para criação de denúncia conforme especificação Swagger
+    
+    Campos obrigatórios:
+    - categoria: Categoria da denúncia
+    - prioridade: Prioridade da denúncia
+    - observacao: Descrição detalhada do problema
+    - logradouro: Nome da rua/avenida
+    - bairro: Nome do bairro
+    - cidade: Nome da cidade
+    - estado: Sigla do estado (UF)
+    - cep: Código postal
+    """
+    categoria: CategoriaDenuncia = Field(..., description="Categoria da denúncia")
+    prioridade: Prioridade = Field(..., description="Prioridade da denúncia")
+    observacao: str = Field(..., description="Descrição detalhada do problema")
+    logradouro: str = Field(..., description="Nome da rua/avenida")
+    numero: Optional[str] = Field(None, description="Número do endereço")
+    complemento: Optional[str] = Field(None, description="Complemento do endereço")
+    bairro: str = Field(..., description="Nome do bairro")
+    cidade: str = Field(..., description="Nome da cidade")
+    estado: str = Field(..., description="Sigla do estado (UF)")
+    cep: str = Field(..., description="Código postal")
+    latitude: Optional[float] = Field(None, description="Coordenada geográfica (latitude)")
+    longitude: Optional[float] = Field(None, description="Coordenada geográfica (longitude)")
 
 
 class DenunciaAtualizarPayload(BaseModel):
-    observacao: Optional[str] = None
-    prioridade: Optional[Prioridade] = None
+    """Payload para atualização de denúncia conforme especificação Swagger
+    
+    Todos os campos são opcionais, permitindo atualização parcial.
+    """
+    observacao: Optional[str] = Field(None, description="Nova descrição do problema")
+    prioridade: Optional[Prioridade] = Field(None, description="Nova prioridade da denúncia")
 
 
 class StatusUpdatePayload(BaseModel):
-    status: StatusDenuncia
+    """Payload para atualização de status da denúncia
+    
+    Apenas admin e fiscal podem alterar o status.
+    """
+    status: StatusDenuncia = Field(..., description="Novo status da denúncia")
 
 
 def _value_error_to_status(err: ValueError) -> int:
@@ -55,9 +87,15 @@ def _value_error_to_status(err: ValueError) -> int:
     return status.HTTP_400_BAD_REQUEST
 
 
-@router.get("/", response_model=List[dict])
+@router.get(
+    "/",
+    response_model=List[dict],
+    summary="Listar Denuncias",
+    description="Lista denúncias do usuário ou todas (para admin/fiscal).",
+    operation_id="listar_denuncias_api_denuncias__get",
+)
 def listar_denuncias(
-    status_filter: Optional[StatusDenuncia] = Query(None, alias="status"),
+    status_filter: Optional[StatusDenuncia] = Query(None, alias="status", description="Filtrar por status"),
     todas: bool = Query(False, description="Se true, lista todas as denúncias (apenas admin/fiscal)"),
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -78,7 +116,13 @@ def listar_denuncias(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao listar denúncias") from err
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    status_code=status.HTTP_201_CREATED,
+    summary="Criar Denuncia",
+    description="Cria uma nova denúncia.",
+    operation_id="criar_denuncia_api_denuncias__post",
+)
 def criar_denuncia(
     payload: DenunciaCriarPayload,
     current_user=Depends(get_current_user),
@@ -111,7 +155,12 @@ def criar_denuncia(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao criar denúncia") from err
 
 
-@router.get("/{denuncia_id}")
+@router.get(
+    "/{denuncia_id}",
+    summary="Obter Denuncia",
+    description="Busca uma denúncia por ID.",
+    operation_id="obter_denuncia_api_denuncias__denuncia_id__get",
+)
 def obter_denuncia(
     denuncia_id: int,
     current_user=Depends(get_current_user),
@@ -130,7 +179,12 @@ def obter_denuncia(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao buscar denúncia") from err
 
 
-@router.patch("/{denuncia_id}")
+@router.patch(
+    "/{denuncia_id}",
+    summary="Atualizar Denuncia",
+    description="Atualiza uma denúncia (apenas criador e status pendente).",
+    operation_id="atualizar_denuncia_api_denuncias__denuncia_id__patch",
+)
 def atualizar_denuncia(
     denuncia_id: int,
     payload: DenunciaAtualizarPayload,
@@ -154,7 +208,13 @@ def atualizar_denuncia(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao atualizar denúncia") from err
 
 
-@router.delete("/{denuncia_id}", status_code=status.HTTP_200_OK)
+@router.delete(
+    "/{denuncia_id}",
+    status_code=status.HTTP_200_OK,
+    summary="Deletar Denuncia",
+    description="Deleta uma denúncia (apenas criador e status pendente).",
+    operation_id="deletar_denuncia_api_denuncias__denuncia_id__delete",
+)
 def deletar_denuncia(
     denuncia_id: int,
     current_user=Depends(get_current_user),
@@ -173,7 +233,12 @@ def deletar_denuncia(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao deletar denúncia") from err
 
 
-@router.patch("/{denuncia_id}/status")
+@router.patch(
+    "/{denuncia_id}/status",
+    summary="Atualizar Status",
+    description="Atualiza o status de uma denúncia (apenas admin/fiscal).",
+    operation_id="atualizar_status_api_denuncias__denuncia_id__status_patch",
+)
 def atualizar_status(
     denuncia_id: int,
     payload: StatusUpdatePayload,

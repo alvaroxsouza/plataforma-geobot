@@ -22,7 +22,7 @@ class Fiscalizacao(Base):
     denuncia_id = Column(BigInteger, ForeignKey("denuncias.id", ondelete="RESTRICT"), nullable=False)
     fiscal_id = Column(BigInteger, ForeignKey("usuarios.id", ondelete="RESTRICT"), nullable=False)
     codigo = Column(String(50), unique=True, nullable=False)
-    status = Column(Enum(StatusFiscalizacao, name="status_fiscalizacao"), default=StatusFiscalizacao.AGUARDANDO, nullable=False)
+    status = Column(Enum(StatusFiscalizacao, name="status_fiscalizacao", values_callable=lambda x: [e.value for e in x]), default=StatusFiscalizacao.AGUARDANDO, nullable=False)
     data_inicializacao = Column(DateTime(timezone=True))
     data_conclusao = Column(DateTime(timezone=True))
     observacoes = Column(Text)
