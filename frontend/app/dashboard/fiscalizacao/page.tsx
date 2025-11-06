@@ -1,50 +1,141 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Search, Filter, ClipboardCheck, Calendar, Users, MapPin, Home, ChevronRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Search, Filter, ClipboardCheck, Calendar, Users, MapPin, Home, ChevronRight, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 
-export default function FiscalizacaoPage() {
-  const [searchQuery, setSearchQuery] = useState("");
+import { fiscalizacaoService, FiscalizacaoResponse, FiscalizacaoStatus, STATUS_LABELS } from "@/services/fiscalizacao";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
-  // Dados mockados para demonstração
-  const stats = [
+interface FiscalizacaoStats {
+  total: number;
+  aguardando_sobrevoo: number;
+  aguardando_inferencia: number;
+  gerando_relatorio: number;
+  concluida: number;
+  cancelada: number;
+}
+
+const statusColors: Record<FiscalizacaoStatus, string> = {
+  AGUARDANDO_SOBREVOO: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  AGUARDANDO_INFERENCIA: "bg-blue-100 text-blue-800 border-blue-200",
+  GERANDO_RELATORIO: "bg-purple-100 text-purple-800 border-purple-200",
+  CONCLUIDA: "bg-green-100 text-green-800 border-green-200",
+  CANCELADA: "bg-red-100 text-red-800 border-red-200",
+};
+
+export default function FiscalizacaoPage() {
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [fiscalizacoes, setFiscalizacoes] = useState<FiscalizacaoResponse[]>([]);
+  const [fiscalizacoesFiltradas, setFiscalizacoesFiltradas] = useState<FiscalizacaoResponse[]>([]);
+  const [stats, setStats] = useState<FiscalizacaoStats>({
+    total: 0,
+    aguardando_sobrevoo: 0,
+    aguardando_inferencia: 0,
+    gerando_relatorio: 0,
+    concluida: 0,
+    cancelada: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [statusAtivo, setStatusAtivo] = useState<"todas" | FiscalizacaoStatus>("todas");
+
+  // Verificar se usuário é admin ou fiscal - será validado no backend
+  const [isAdminOuFiscal, setIsAdminOuFiscal] = useState(true);
+
+  const carregarFiscalizacoes = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await fiscalizacaoService.getAll();
+      setFiscalizacoes(response);
+      calcularEstatisticas(response);
+      setIsAdminOuFiscal(true);
+    } catch (err) {
+      console.error("Erro ao carregar fiscalizações:", err);
+      // Se for erro 403, é porque não tem permissão
+      const error = err as { response?: { status?: number }; message?: string };
+      if (error?.response?.status === 403 || error?.message?.includes("403")) {
+        setError("Você não tem permissão para acessar fiscalizações.");
+        setIsAdminOuFiscal(false);
+      } else {
+        setError("Não foi possível carregar as fiscalizações. Tente novamente.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const calcularEstatisticas = (fiscalizacoesData: FiscalizacaoResponse[]) => {
+    const stats: FiscalizacaoStats = {
+      total: fiscalizacoesData.length,
+      aguardando_sobrevoo: fiscalizacoesData.filter(f => f.status_fiscalizacao === "AGUARDANDO_SOBREVOO").length,
+      aguardando_inferencia: fiscalizacoesData.filter(f => f.status_fiscalizacao === "AGUARDANDO_INFERENCIA").length,
+      gerando_relatorio: fiscalizacoesData.filter(f => f.status_fiscalizacao === "GERANDO_RELATORIO").length,
+      concluida: fiscalizacoesData.filter(f => f.status_fiscalizacao === "CONCLUIDA").length,
+      cancelada: fiscalizacoesData.filter(f => f.status_fiscalizacao === "CANCELADA").length,
+    };
+    setStats(stats);
+  };
+
+  useEffect(() => {
+    carregarFiscalizacoes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    let filtered = fiscalizacoes;
+
+    // Filtrar por status
+    if (statusAtivo !== "todas") {
+      filtered = filtered.filter(f => f.status_fiscalizacao === statusAtivo);
+    }
+
+    // Filtrar por busca
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(f => 
+        f.id.toString().includes(query) ||
+        f.complaint_id.toString().includes(query)
+      );
+    }
+
+    setFiscalizacoesFiltradas(filtered);
+  }, [fiscalizacoes, statusAtivo, searchQuery]);
+
+  const statsCards = [
     { 
       label: "Total de Fiscalizações", 
-      value: "156", 
-      change: "+8%", 
-      changeType: "positive",
+      value: stats.total,
       icon: ClipboardCheck,
       color: "text-blue-600",
       bgColor: "bg-blue-50"
     },
     { 
-      label: "Agendadas", 
-      value: "23", 
-      change: "+5", 
-      changeType: "neutral",
+      label: "Aguardando Sobrevoo", 
+      value: stats.aguardando_sobrevoo,
       icon: Calendar,
-      color: "text-purple-600",
-      bgColor: "bg-purple-50"
+      color: "text-yellow-600",
+      bgColor: "bg-yellow-50"
     },
     { 
-      label: "Em Andamento", 
-      value: "12", 
-      change: "+2", 
-      changeType: "neutral",
+      label: "Em Processamento", 
+      value: stats.aguardando_inferencia + stats.gerando_relatorio,
       icon: Users,
       color: "text-orange-600",
       bgColor: "bg-orange-50"
     },
     { 
       label: "Concluídas", 
-      value: "121", 
-      change: "+18%", 
-      changeType: "positive",
+      value: stats.concluida,
       icon: ClipboardCheck,
       color: "text-green-600",
       bgColor: "bg-green-50"
@@ -87,7 +178,7 @@ export default function FiscalizacaoPage() {
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat, index) => {
+        {statsCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
             <Card key={index} className="hover:shadow-lg transition-shadow">
@@ -101,15 +192,6 @@ export default function FiscalizacaoPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stat.value}</div>
-                <p className={`text-xs ${
-                  stat.changeType === 'positive' 
-                    ? 'text-green-600' 
-                    : stat.changeType === 'negative' 
-                    ? 'text-red-600' 
-                    : 'text-muted-foreground'
-                }`}>
-                  {stat.change} em relação ao mês anterior
-                </p>
               </CardContent>
             </Card>
           );
@@ -123,7 +205,9 @@ export default function FiscalizacaoPage() {
             <div>
               <CardTitle>Lista de Fiscalizações</CardTitle>
               <CardDescription>
-                Acompanhe todas as fiscalizações e vistorias
+                {isAdminOuFiscal 
+                  ? "Acompanhe todas as fiscalizações e vistorias" 
+                  : "Acesso restrito a administradores e fiscais"}
               </CardDescription>
             </div>
             <div className="flex gap-2">
@@ -134,68 +218,131 @@ export default function FiscalizacaoPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
+                  disabled={!isAdminOuFiscal}
                 />
               </div>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" onClick={carregarFiscalizacoes} disabled={!isAdminOuFiscal}>
                 <Filter className="h-4 w-4" />
               </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="todas" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="todas">Todas</TabsTrigger>
-              <TabsTrigger value="agendadas">Agendadas</TabsTrigger>
-              <TabsTrigger value="em_andamento">Em Andamento</TabsTrigger>
-              <TabsTrigger value="concluidas">Concluídas</TabsTrigger>
+          <Tabs defaultValue="todas" className="w-full" onValueChange={(value) => setStatusAtivo(value as "todas" | FiscalizacaoStatus)}>
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="todas">
+                Todas ({stats.total})
+              </TabsTrigger>
+              <TabsTrigger value="AGUARDANDO_SOBREVOO">
+                Sobrevoo ({stats.aguardando_sobrevoo})
+              </TabsTrigger>
+              <TabsTrigger value="AGUARDANDO_INFERENCIA">
+                Inferência ({stats.aguardando_inferencia})
+              </TabsTrigger>
+              <TabsTrigger value="GERANDO_RELATORIO">
+                Relatório ({stats.gerando_relatorio})
+              </TabsTrigger>
+              <TabsTrigger value="CONCLUIDA">
+                Concluídas ({stats.concluida})
+              </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="todas" className="mt-6">
-              <div className="text-center py-12">
+            {!isAdminOuFiscal ? (
+              <div className="text-center py-12 mt-6">
+                <ClipboardCheck className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Acesso Restrito</h3>
+                <p className="text-sm text-muted-foreground">
+                  Apenas administradores e fiscais podem acessar as fiscalizações.
+                </p>
+              </div>
+            ) : isLoading ? (
+              <div className="text-center py-12 mt-6">
+                <div className="animate-spin mx-auto h-12 w-12 border-4 border-primary border-t-transparent rounded-full mb-4" />
+                <p className="text-sm text-muted-foreground">Carregando fiscalizações...</p>
+              </div>
+            ) : error ? (
+              <div className="text-center py-12 mt-6">
+                <ClipboardCheck className="mx-auto h-12 w-12 text-red-500 mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Erro ao carregar fiscalizações</h3>
+                <p className="text-sm text-muted-foreground mb-4">{error}</p>
+                <Button onClick={carregarFiscalizacoes}>Tentar Novamente</Button>
+              </div>
+            ) : fiscalizacoesFiltradas.length === 0 ? (
+              <div className="text-center py-12 mt-6">
                 <ClipboardCheck className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Nenhuma fiscalização encontrada</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Comece agendando uma nova fiscalização
+                  {searchQuery 
+                    ? "Tente ajustar os filtros de busca" 
+                    : "Comece criando uma nova fiscalização"}
                 </p>
-                <Link href="/dashboard/fiscalizacao/nova">
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Agendar Fiscalização
-                  </Button>
-                </Link>
+                {!searchQuery && (
+                  <Link href="/dashboard/gerenciar-denuncias">
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Ir para Denúncias
+                    </Button>
+                  </Link>
+                )}
               </div>
-            </TabsContent>
-
-            <TabsContent value="agendadas" className="mt-6">
-              <div className="text-center py-12">
-                <Calendar className="mx-auto h-12 w-12 text-purple-500 mb-4" />
-                <h3 className="text-lg font-semibold mb-2">23 Fiscalizações Agendadas</h3>
-                <p className="text-sm text-muted-foreground">
-                  Programadas para os próximos dias
-                </p>
+            ) : (
+              <div className="mt-6 space-y-4">
+                {fiscalizacoesFiltradas.map((fiscalizacao) => (
+                  <Card key={fiscalizacao.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                        <div className="flex-1 space-y-3">
+                          <div className="flex items-start gap-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Badge variant="outline" className={statusColors[fiscalizacao.status_fiscalizacao]}>
+                                  {STATUS_LABELS[fiscalizacao.status_fiscalizacao]}
+                                </Badge>
+                                <span className="text-sm text-muted-foreground">
+                                  Fiscalização #{fiscalizacao.id}
+                                </span>
+                              </div>
+                              <p className="text-sm text-foreground mb-2">
+                                Denúncia: #{fiscalizacao.complaint_id}
+                              </p>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Calendar className="h-4 w-4" />
+                                <span>
+                                  Criada em {format(new Date(fiscalizacao.data_criacao), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                </span>
+                              </div>
+                              {fiscalizacao.data_conclusao_prevista && (
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                                  <Calendar className="h-4 w-4" />
+                                  <span>
+                                    Previsão de conclusão: {format(new Date(fiscalizacao.data_conclusao_prevista), "dd/MM/yyyy", { locale: ptBR })}
+                                  </span>
+                                </div>
+                              )}
+                              {fiscalizacao.data_conclusao_efetiva && (
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                                  <Calendar className="h-4 w-4" />
+                                  <span>
+                                    Concluída em: {format(new Date(fiscalizacao.data_conclusao_efetiva), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Link href={`/dashboard/fiscalizacao/${fiscalizacao.id}`}>
+                            <Button variant="outline" size="sm">
+                              Ver Detalhes
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
-            </TabsContent>
-
-            <TabsContent value="em_andamento" className="mt-6">
-              <div className="text-center py-12">
-                <Users className="mx-auto h-12 w-12 text-orange-500 mb-4" />
-                <h3 className="text-lg font-semibold mb-2">12 Fiscalizações em Andamento</h3>
-                <p className="text-sm text-muted-foreground">
-                  Equipe de campo em ação
-                </p>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="concluidas" className="mt-6">
-              <div className="text-center py-12">
-                <ClipboardCheck className="mx-auto h-12 w-12 text-green-500 mb-4" />
-                <h3 className="text-lg font-semibold mb-2">121 Fiscalizações Concluídas</h3>
-                <p className="text-sm text-muted-foreground">
-                  Finalizadas com sucesso
-                </p>
-              </div>
-            </TabsContent>
+            )}
           </Tabs>
         </CardContent>
       </Card>
