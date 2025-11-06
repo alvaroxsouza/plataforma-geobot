@@ -20,27 +20,5 @@ services:
       timeout: 5s
       retries: 5
 
-  app:
-    build: .
-    container_name: geobot_platform_app
-    restart: always
-    ports:
-      - "8000:8000"
-    environment:
-      GEOBOT_ENV: development
-      GEOBOT__HOST: 0.0.0.0
-      GEOBOT__PORT: 8000
-      GEOBOT__DB_HOST: db
-      GEOBOT__DB_PORT: 5432
-      GEOBOT__DB_NAME: geobot_platform
-      GEOBOT__DB_USER: geobot_user
-      GEOBOT__DB_PASSWORD: geobot2025
-    depends_on:
-      db:
-        condition: service_healthy
-    volumes:
-      - ./uploads:/app/uploads
-      - ./logs:/app/logs
-
 volumes:
   pgdata:
