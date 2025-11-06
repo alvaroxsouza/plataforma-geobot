@@ -6,7 +6,7 @@ services:
     container_name: geobot_platform_db
     restart: always
     ports:
-      - "5433:5432"
+      - "5440:5432"
     environment:
       POSTGRES_USER: geobot_user
       POSTGRES_PASSWORD: geobot2025

@@ -19,7 +19,7 @@ dependencies = [
     # FastAPI dependencies (adicionadas para migração de Flask -> FastAPI)
     "fastapi (>=0.95.0,<1.0.0)",
     "uvicorn (>=0.22.0,<1.0.0)",
-    "pydantic (>=1.10.7,<2.0.0)",
+    "pydantic (>=2.12.4,<3.0.0)",
     "python-multipart (>=0.0.20,<0.0.21)"
 ]
 
