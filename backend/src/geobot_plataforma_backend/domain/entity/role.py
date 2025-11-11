@@ -13,6 +13,7 @@ from src.geobot_plataforma_backend.core.database import Base
 class Role(Base):
     """Modelo de papéis/permissões"""
     __tablename__ = "roles"
+    __table_args__ = {'schema': 'geobot'}
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     uuid = Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True, nullable=False)

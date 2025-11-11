@@ -39,5 +39,6 @@ class Endereco(Base):
         CheckConstraint("LENGTH(estado) = 2", name="uf_valida"),
         CheckConstraint("latitude IS NULL OR (latitude >= -90 AND latitude <= 90)", name="latitude_valida"),
         CheckConstraint("longitude IS NULL OR (longitude >= -180 AND longitude <= 180)", name="longitude_valida"),
+        {'schema': 'geobot'}
     )
 

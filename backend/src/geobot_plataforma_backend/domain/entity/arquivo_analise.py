@@ -8,8 +8,9 @@ from src.geobot_plataforma_backend.core.database import Base
 class ArquivoAnalise(Base):
     """Tabela de associação arquivo-análise"""
     __tablename__ = "arquivos_analise"
-    arquivo_id = Column(BigInteger, ForeignKey("arquivos.id", ondelete="CASCADE"), primary_key=True)
-    analise_id = Column(BigInteger, ForeignKey("analises.id", ondelete="CASCADE"), primary_key=True)
+    __table_args__ = {'schema': 'geobot'}
+    arquivo_id = Column(BigInteger, ForeignKey("geobot.arquivos.id", ondelete="CASCADE"), primary_key=True)
+    analise_id = Column(BigInteger, ForeignKey("geobot.analises.id", ondelete="CASCADE"), primary_key=True)
     created_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)
     # Relacionamentos
     arquivo = relationship("Arquivo", back_populates="analises")

@@ -16,11 +16,12 @@ from .enums import StatusDenuncia, CategoriaDenuncia, Prioridade
 class Denuncia(Base):
     """Modelo de denúncia"""
     __tablename__ = "denuncias"
+    __table_args__ = {'schema': 'geobot'}
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     uuid = Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True, nullable=False)
-    usuario_id = Column(BigInteger, ForeignKey("usuarios.id", ondelete="RESTRICT"), nullable=False)
-    endereco_id = Column(BigInteger, ForeignKey("enderecos.id", ondelete="RESTRICT"), nullable=False)
+    usuario_id = Column(BigInteger, ForeignKey("geobot.usuarios.id", ondelete="RESTRICT"), nullable=False)
+    endereco_id = Column(BigInteger, ForeignKey("geobot.enderecos.id", ondelete="RESTRICT"), nullable=False)
     status = Column(Enum(StatusDenuncia, name="status_denuncia", values_callable=lambda x: [e.value for e in x]), default=StatusDenuncia.PENDENTE, nullable=False)
     categoria = Column(Enum(CategoriaDenuncia, name="categoria_denuncia", values_callable=lambda x: [e.value for e in x]), nullable=False)
     prioridade = Column(Enum(Prioridade, name="prioridade", values_callable=lambda x: [e.value for e in x]), default=Prioridade.MEDIA, nullable=False)

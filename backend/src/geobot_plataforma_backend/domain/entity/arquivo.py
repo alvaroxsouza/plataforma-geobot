@@ -35,5 +35,6 @@ class Arquivo(Base):
 
     __table_args__ = (
         CheckConstraint("tamanho_bytes > 0", name="tamanho_valido"),
+        {'schema': 'geobot'}
     )
 

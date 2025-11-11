@@ -13,6 +13,7 @@ from src.geobot_plataforma_backend.core.database import Base
 class Grupo(Base):
     """Modelo de grupo de usuários"""
     __tablename__ = "grupos"
+    __table_args__ = {'schema': 'geobot'}
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     uuid = Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True, nullable=False)

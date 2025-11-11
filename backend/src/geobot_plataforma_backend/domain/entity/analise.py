@@ -19,7 +19,7 @@ class Analise(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     uuid = Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True, nullable=False)
-    fiscalizacao_id = Column(BigInteger, ForeignKey("fiscalizacoes.id", ondelete="CASCADE"), nullable=False)
+    fiscalizacao_id = Column(BigInteger, ForeignKey("geobot.fiscalizacoes.id", ondelete="CASCADE"), nullable=False)
     tipo_analise = Column(Enum(TipoAnalise, name="tipo_analise", values_callable=lambda x: [e.value for e in x]), nullable=False)
     dados_json = Column(JSONB, default=dict, nullable=False)
     resultado_principal = Column(Text)
@@ -34,5 +34,6 @@ class Analise(Base):
 
     __table_args__ = (
         CheckConstraint("confianca IS NULL OR (confianca >= 0 AND confianca <= 100)", name="confianca_valida"),
+        {'schema': 'geobot'}
     )
 

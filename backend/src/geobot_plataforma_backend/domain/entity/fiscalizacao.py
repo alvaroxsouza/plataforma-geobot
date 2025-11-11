@@ -19,8 +19,8 @@ class Fiscalizacao(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     uuid = Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True, nullable=False)
-    denuncia_id = Column(BigInteger, ForeignKey("denuncias.id", ondelete="RESTRICT"), nullable=False)
-    fiscal_id = Column(BigInteger, ForeignKey("usuarios.id", ondelete="RESTRICT"), nullable=False)
+    denuncia_id = Column(BigInteger, ForeignKey("geobot.denuncias.id", ondelete="RESTRICT"), nullable=False)
+    fiscal_id = Column(BigInteger, ForeignKey("geobot.usuarios.id", ondelete="RESTRICT"), nullable=False)
     codigo = Column(String(50), unique=True, nullable=False)
     status = Column(Enum(StatusFiscalizacao, name="status_fiscalizacao", values_callable=lambda x: [e.value for e in x]), default=StatusFiscalizacao.AGUARDANDO, nullable=False)
     data_inicializacao = Column(DateTime(timezone=True))
@@ -37,5 +37,6 @@ class Fiscalizacao(Base):
 
     __table_args__ = (
         CheckConstraint("data_conclusao IS NULL OR data_conclusao >= data_inicializacao", name="datas_validas"),
+        {'schema': 'geobot'}
     )
 

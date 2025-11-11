@@ -11,9 +11,10 @@ from src.geobot_plataforma_backend.core.database import Base
 class ArquivoFiscalizacao(Base):
     """Tabela de associação arquivo-fiscalização"""
     __tablename__ = "arquivos_fiscalizacao"
+    __table_args__ = {'schema': 'geobot'}
 
-    arquivo_id = Column(BigInteger, ForeignKey("arquivos.id", ondelete="CASCADE"), primary_key=True)
-    fiscalizacao_id = Column(BigInteger, ForeignKey("fiscalizacoes.id", ondelete="CASCADE"), primary_key=True)
+    arquivo_id = Column(BigInteger, ForeignKey("geobot.arquivos.id", ondelete="CASCADE"), primary_key=True)
+    fiscalizacao_id = Column(BigInteger, ForeignKey("geobot.fiscalizacoes.id", ondelete="CASCADE"), primary_key=True)
     created_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)
 
     # Relacionamentos

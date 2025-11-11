@@ -11,9 +11,10 @@ from src.geobot_plataforma_backend.core.database import Base
 class UsuarioGrupo(Base):
     """Tabela de associação usuário-grupo"""
     __tablename__ = "usuario_grupo"
+    __table_args__ = {'schema': 'geobot'}
 
-    usuario_id = Column(BigInteger, ForeignKey("usuarios.id", ondelete="CASCADE"), primary_key=True)
-    grupo_id = Column(Integer, ForeignKey("grupos.id", ondelete="CASCADE"), primary_key=True)
+    usuario_id = Column(BigInteger, ForeignKey("geobot.usuarios.id", ondelete="CASCADE"), primary_key=True)
+    grupo_id = Column(Integer, ForeignKey("geobot.grupos.id", ondelete="CASCADE"), primary_key=True)
     created_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)
 
     # Relacionamentos

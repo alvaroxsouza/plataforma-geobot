@@ -39,6 +39,9 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Base para os models
 Base = declarative_base()
 
+# Schema padrão para os models
+DEFAULT_SCHEMA = "geobot"
+
 
 def get_db():
     """
