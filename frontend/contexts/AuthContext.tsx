@@ -107,10 +107,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Erro ao fazer login:', error);
       if (error instanceof ApiError) {
-        console.error('Erro ao criar conta:', error.message);
         throw new Error(error.message);
       }
-      throw new Error(`Erro ao fazer login. Tente novamente. ${error}`);
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error("Erro ao fazer login. Verifique suas credenciais e tente novamente.");
     }
   };
 
@@ -122,10 +124,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Erro ao criar conta:', error);
       if (error instanceof ApiError) {
-        console.error('Erro ao criar conta:', error);
         throw new Error(error.message);
       }
-      throw new Error("Erro ao criar conta. Tente novamente.");
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error("Erro ao criar conta. Verifique os dados e tente novamente.");
     }
   };
 
