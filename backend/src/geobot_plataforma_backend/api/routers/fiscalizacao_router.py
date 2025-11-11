@@ -35,15 +35,16 @@ def _to_dict(f):
     return {
         'id': f.id,
         'uuid': str(f.uuid),
-        'denuncia_id': f.denuncia_id,
-        'fiscal_id': f.fiscal_id,
+        'complaint_id': f.denuncia_id,  # Frontend espera complaint_id
+        'fiscal_responsavel_id': f.fiscal_id,  # Frontend espera fiscal_responsavel_id
         'codigo': f.codigo,
-        'status': f.status.value if hasattr(f.status, 'value') else f.status,
-        'data_inicializacao': f.data_inicializacao.isoformat() if f.data_inicializacao else None,
-        'data_conclusao': f.data_conclusao.isoformat() if f.data_conclusao else None,
+        'status_fiscalizacao': f.status.value if hasattr(f.status, 'value') else f.status,  # Frontend espera status_fiscalizacao
+        'data_inicio': f.data_inicializacao.isoformat() if f.data_inicializacao else None,  # Frontend espera data_inicio
+        'data_conclusao_prevista': None,  # Não temos este campo na entidade atualmente
+        'data_conclusao_efetiva': f.data_conclusao.isoformat() if f.data_conclusao else None,  # Frontend espera data_conclusao_efetiva
         'observacoes': f.observacoes,
-        'created_at': f.created_at.isoformat() if f.created_at else None,
-        'updated_at': f.updated_at.isoformat() if f.updated_at else None,
+        'data_criacao': f.created_at.isoformat() if f.created_at else None,  # Frontend espera data_criacao
+        'data_atualizacao': f.updated_at.isoformat() if f.updated_at else None,  # Frontend espera data_atualizacao
     }
 
 

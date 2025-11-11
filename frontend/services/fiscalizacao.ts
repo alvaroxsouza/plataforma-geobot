@@ -53,7 +53,7 @@ export const STATUS_LABELS: Record<FiscalizacaoStatus, string> = {
 export const fiscalizacaoService = {
   // Criar nova fiscalização (FISCAL/ADMIN)
   create: (data: FiscalizacaoCreate) => 
-    api.post<FiscalizacaoResponse>("/fiscalizacao/", data),
+    api.post<FiscalizacaoResponse>("/api/fiscalizacao/", data),
 
   // Listar fiscalizações com filtros (FISCAL/ADMIN)
   getAll: (params?: {
@@ -69,22 +69,22 @@ export const fiscalizacaoService = {
     if (params?.offset) queryParams.append("offset", params.offset.toString());
     
     const query = queryParams.toString();
-    return api.get<FiscalizacaoResponse[]>(`/fiscalizacao/${query ? `?${query}` : ""}`);
+    return api.get<FiscalizacaoResponse[]>(`/api/fiscalizacao/${query ? `?${query}` : ""}`);
   },
 
   // Listar minhas fiscalizações (FISCAL)
   getMy: () => 
-    api.get<FiscalizacaoResponse[]>("/fiscalizacao/minhas"),
+    api.get<FiscalizacaoResponse[]>("/api/fiscalizacao/minhas"),
 
   // Obter detalhes de uma fiscalização
   getById: (id: number) => 
-    api.get<FiscalizacaoResponse>(`/fiscalizacao/${id}`),
+    api.get<FiscalizacaoResponse>(`/api/fiscalizacao/${id}`),
 
   // Atribuir fiscalização a um fiscal (ADMIN)
   assign: (id: number, data: FiscalizacaoAtribuir) => 
-    api.patch<FiscalizacaoResponse>(`/fiscalizacao/${id}/atribuir`, data),
+    api.patch<FiscalizacaoResponse>(`/api/fiscalizacao/${id}/atribuir`, data),
 
   // Obter histórico de uma fiscalização (FISCAL/ADMIN)
   getHistory: (id: number) => 
-    api.get<FiscalizacaoHistoricoResponse[]>(`/fiscalizacao/${id}/historico`),
+    api.get<FiscalizacaoHistoricoResponse[]>(`/api/fiscalizacao/${id}/historico`),
 };
