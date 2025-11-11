@@ -241,22 +241,42 @@ export default function DenunciasPage() {
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3">
           <CardTitle>Denúncias por Tipo de Equipamento</CardTitle>
           <CardDescription>
             Acesse rapidamente as denúncias específicas de cada equipamento público
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {[
               { slug: "calcada", nome: "Calçada", icon: "🚶" },
               { slug: "rua", nome: "Rua", icon: "🛣️" },
               { slug: "ciclovia", nome: "Ciclovia", icon: "🚴" },
               { slug: "semaforo", nome: "Semáforo", icon: "🚦" },
-              { slug: "sinalizacao", nome: "Sinalização", icon: "🚧" },
+              { slug: "sinalizacao", nome: "Sinalização", icon: "🚧" }
+            ].map((equipamento) => (
+              <Link 
+                key={equipamento.slug}
+                href={`/dashboard/denuncias/equipamentos/${equipamento.slug}`}
+                className="block"
+              >
+                <Card className="h-full hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer border-2 hover:border-primary/50 group">
+                  <CardContent className="p-6 flex flex-col items-center justify-center text-center h-full min-h-[120px]">
+                    <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">
+                      {equipamento.icon}
+                    </div>
+                    <div className="font-semibold text-sm">{equipamento.nome}</div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+          
+          <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 mt-4">
+            {[
               { slug: "iluminacao", nome: "Iluminação", icon: "💡" },
-              { slug: "lixo", nome: "Lixo e Entulho", icon: "🗑️" },
+              { slug: "lixo_entulho", nome: "Lixo e Entulho", icon: "🗑️" },
               { slug: "poluicao", nome: "Poluição", icon: "🏭" },
               { slug: "barulho", nome: "Barulho", icon: "🔊" },
               { slug: "outros", nome: "Outros", icon: "📋" }
@@ -264,11 +284,14 @@ export default function DenunciasPage() {
               <Link 
                 key={equipamento.slug}
                 href={`/dashboard/denuncias/equipamentos/${equipamento.slug}`}
+                className="block"
               >
-                <Card className="hover:shadow-md hover:scale-105 transition-all cursor-pointer border-2 hover:border-primary/50">
-                  <CardContent className="p-4 text-center">
-                    <div className="text-3xl mb-2">{equipamento.icon}</div>
-                    <div className="font-medium text-sm">{equipamento.nome}</div>
+                <Card className="h-full hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer border-2 hover:border-primary/50 group">
+                  <CardContent className="p-6 flex flex-col items-center justify-center text-center h-full min-h-[120px]">
+                    <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">
+                      {equipamento.icon}
+                    </div>
+                    <div className="font-semibold text-sm">{equipamento.nome}</div>
                   </CardContent>
                 </Card>
               </Link>
@@ -307,26 +330,28 @@ export default function DenunciasPage() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="todas" className="w-full" onValueChange={(value) => setStatusAtivo(value as "todas" | StatusDenuncia)}>
-            <TabsList className="grid w-full grid-cols-6">
-              <TabsTrigger value="todas">
-                Todas ({stats.total})
-              </TabsTrigger>
-              <TabsTrigger value="pendente">
-                Pendentes ({stats.pendentes})
-              </TabsTrigger>
-              <TabsTrigger value="em_analise">
-                Em Análise ({stats.em_analise})
-              </TabsTrigger>
-              <TabsTrigger value="em_fiscalizacao">
-                Fiscalização ({stats.em_fiscalizacao})
-              </TabsTrigger>
-              <TabsTrigger value="concluida">
-                Concluídas ({stats.concluidas})
-              </TabsTrigger>
-              <TabsTrigger value="arquivada">
-                Arquivadas ({stats.arquivadas})
-              </TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto pb-2">
+              <TabsList className="inline-flex w-full min-w-max md:grid md:w-full md:grid-cols-6 h-auto gap-1">
+                <TabsTrigger value="todas" className="whitespace-nowrap px-4 py-2">
+                  Todas <span className="ml-1 font-bold">({stats.total})</span>
+                </TabsTrigger>
+                <TabsTrigger value="pendente" className="whitespace-nowrap px-4 py-2">
+                  Pendentes <span className="ml-1 font-bold">({stats.pendentes})</span>
+                </TabsTrigger>
+                <TabsTrigger value="em_analise" className="whitespace-nowrap px-4 py-2">
+                  Em Análise <span className="ml-1 font-bold">({stats.em_analise})</span>
+                </TabsTrigger>
+                <TabsTrigger value="em_fiscalizacao" className="whitespace-nowrap px-4 py-2">
+                  Fiscalização <span className="ml-1 font-bold">({stats.em_fiscalizacao})</span>
+                </TabsTrigger>
+                <TabsTrigger value="concluida" className="whitespace-nowrap px-4 py-2">
+                  Concluídas <span className="ml-1 font-bold">({stats.concluidas})</span>
+                </TabsTrigger>
+                <TabsTrigger value="arquivada" className="whitespace-nowrap px-4 py-2">
+                  Arquivadas <span className="ml-1 font-bold">({stats.arquivadas})</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             {isLoading ? (
               <div className="text-center py-12">
@@ -361,52 +386,74 @@ export default function DenunciasPage() {
             ) : (
               <div className="mt-6 space-y-4">
                 {denunciasFiltradas.map((denuncia) => (
-                  <Card key={denuncia.id} className="hover:shadow-md transition-shadow">
+                  <Card key={denuncia.id} className="hover:shadow-lg transition-all hover:border-primary/50 group">
                     <CardContent className="p-6">
-                      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                        <div className="flex-1 space-y-3">
-                          <div className="flex items-start gap-3">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Badge variant="outline" className={statusColors[denuncia.status]}>
-                                  {statusLabels[denuncia.status]}
-                                </Badge>
-                                <Badge variant="outline" className={prioridadeColors[denuncia.prioridade]}>
-                                  {denuncia.prioridade.charAt(0).toUpperCase() + denuncia.prioridade.slice(1)}
-                                </Badge>
-                                <span className="text-sm text-muted-foreground">
-                                  {categoriasLabels[denuncia.categoria]}
-                                </span>
-                              </div>
-                              <p className="text-sm text-foreground mb-2">
-                                {denuncia.observacao}
+                      <div className="flex flex-col gap-4">
+                        {/* Header com Badges e Categoria */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline" className={`${statusColors[denuncia.status]} font-medium`}>
+                            {statusLabels[denuncia.status]}
+                          </Badge>
+                          <Badge variant="outline" className={`${prioridadeColors[denuncia.prioridade]} font-medium`}>
+                            Prioridade: {denuncia.prioridade.charAt(0).toUpperCase() + denuncia.prioridade.slice(1)}
+                          </Badge>
+                          <Badge variant="secondary" className="font-medium">
+                            {categoriasLabels[denuncia.categoria]}
+                          </Badge>
+                        </div>
+
+                        {/* Descrição */}
+                        <div>
+                          <h3 className="font-semibold text-base mb-2 text-foreground">
+                            Descrição
+                          </h3>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {denuncia.observacao}
+                          </p>
+                        </div>
+
+                        {/* Informações */}
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="flex items-start gap-2">
+                            <MapPin className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                            <div className="text-sm">
+                              <p className="font-medium text-foreground">
+                                {denuncia.endereco.logradouro}
+                                {denuncia.endereco.numero && `, ${denuncia.endereco.numero}`}
                               </p>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <MapPin className="h-4 w-4" />
-                                <span>
-                                  {denuncia.endereco.logradouro}
-                                  {denuncia.endereco.numero && `, ${denuncia.endereco.numero}`}
-                                  {" - "}
-                                  {denuncia.endereco.bairro}, {denuncia.endereco.cidade}/{denuncia.endereco.estado}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                                <Calendar className="h-4 w-4" />
-                                <span>
-                                  Criada em {format(new Date(denuncia.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                                </span>
-                              </div>
-                              {isAdminOuFiscal && (
-                                <div className="text-sm text-muted-foreground mt-1">
-                                  Denunciante: {denuncia.usuario.nome} ({denuncia.usuario.email})
-                                </div>
-                              )}
+                              <p className="text-muted-foreground">
+                                {denuncia.endereco.bairro}, {denuncia.endereco.cidade}/{denuncia.endereco.estado}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-start gap-2">
+                            <Calendar className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                            <div className="text-sm">
+                              <p className="font-medium text-foreground">
+                                {format(new Date(denuncia.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                              </p>
+                              <p className="text-muted-foreground">
+                                às {format(new Date(denuncia.created_at), "HH:mm", { locale: ptBR })}
+                              </p>
                             </div>
                           </div>
                         </div>
-                        <div className="flex gap-2">
+
+                        {/* Denunciante (Admin/Fiscal) */}
+                        {isAdminOuFiscal && (
+                          <div className="pt-3 border-t">
+                            <p className="text-sm text-muted-foreground">
+                              <span className="font-medium text-foreground">Denunciante:</span> {denuncia.usuario.nome} · {denuncia.usuario.email}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Botão de Ação */}
+                        <div className="flex justify-end pt-2">
                           <Link href={`/dashboard/denuncias/${denuncia.id}`}>
-                            <Button variant="outline" size="sm">
+                            <Button variant="default" size="sm" className="gap-2">
+                              <Eye className="h-4 w-4" />
                               Ver Detalhes
                             </Button>
                           </Link>
