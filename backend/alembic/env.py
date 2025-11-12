@@ -19,7 +19,8 @@ from src.geobot_plataforma_backend.core.database import Base, get_database_url
 from src.geobot_plataforma_backend.domain.entity import (
     Usuario, Grupo, Role, UsuarioGrupo, GrupoRole,
     Endereco, Denuncia, Fiscalizacao, Analise, Arquivo,
-    ArquivoDenuncia, ArquivoFiscalizacao, ArquivoAnalise
+    ArquivoDenuncia, ArquivoAnalise,
+    EtapaFiscalizacao, ResultadoAnaliseIA, RelatórioFiscalizacao
 )
 
 # this is the Alembic Config object, which provides

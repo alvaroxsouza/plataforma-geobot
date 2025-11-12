@@ -30,7 +30,6 @@ class Arquivo(Base):
 
     # Relacionamentos
     denuncias = relationship("ArquivoDenuncia", back_populates="arquivo")
-    fiscalizacoes = relationship("ArquivoFiscalizacao", back_populates="arquivo")
     analises = relationship("ArquivoAnalise", back_populates="arquivo")
 
     __table_args__ = (

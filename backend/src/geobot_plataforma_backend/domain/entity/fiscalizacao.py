@@ -33,7 +33,8 @@ class Fiscalizacao(Base):
     denuncia = relationship("Denuncia", back_populates="fiscalizacoes")
     fiscal = relationship("Usuario", back_populates="fiscalizacoes", foreign_keys="Fiscalizacao.fiscal_id")
     analises = relationship("Analise", back_populates="fiscalizacao")
-    arquivos = relationship("ArquivoFiscalizacao", back_populates="fiscalizacao")
+    etapas = relationship("EtapaFiscalizacao", back_populates="fiscalizacao", cascade="all, delete-orphan")
+    arquivos_fiscalizacao = relationship("ArquivoFiscalizacao", back_populates="fiscalizacao", cascade="all, delete-orphan")
 
     __table_args__ = (
         CheckConstraint("data_conclusao IS NULL OR data_conclusao >= data_inicializacao", name="datas_validas"),

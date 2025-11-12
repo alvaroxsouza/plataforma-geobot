@@ -63,7 +63,8 @@ class FiscalizacaoService:
         
         self.db.add(fiscalizacao)
         self.db.commit()
-        self.db.refresh(fiscalizacao)
+        # Não fazer refresh para evitar problemas com relacionamentos
+        # O objeto já tem os atributos necessários após o commit
         
         return fiscalizacao
 

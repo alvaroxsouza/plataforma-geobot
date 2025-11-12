@@ -19,8 +19,13 @@ from .fiscalizacao import Fiscalizacao
 from .analise import Analise
 from .arquivo import Arquivo
 from .arquivo_denuncia import ArquivoDenuncia
-from .arquivo_fiscalizacao import ArquivoFiscalizacao
 from .arquivo_analise import ArquivoAnalise
+from .etapa_e_resultado import (
+    EtapaFiscalizacao,
+    ResultadoAnaliseIA,
+    RelatórioFiscalizacao,
+)
+from .etapa_fiscalizacao_enum import EtapaFiscalizacaoEnum
 
 __all__ = [
     # Models
@@ -35,13 +40,16 @@ __all__ = [
     "Analise",
     "Arquivo",
     "ArquivoDenuncia",
-    "ArquivoFiscalizacao",
     "ArquivoAnalise",
+    "EtapaFiscalizacao",
+    "ResultadoAnaliseIA",
+    "RelatórioFiscalizacao",
     # Enums
     "StatusDenuncia",
     "CategoriaDenuncia",
     "Prioridade",
     "StatusFiscalizacao",
     "TipoAnalise",
+    "EtapaFiscalizacaoEnum",
 ]
 
