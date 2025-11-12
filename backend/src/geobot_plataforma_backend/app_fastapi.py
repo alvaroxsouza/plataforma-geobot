@@ -12,6 +12,7 @@ from src.geobot_plataforma_backend.api.routers import (
     auth_router,
     denuncia_router,
     fiscalizacao_router,
+    metadata_router,
 )
 
 
@@ -27,6 +28,10 @@ tags_metadata = [
     {
         'name': 'fiscalizacao',
         'description': 'Fluxo de fiscalização relacionado às denúncias.'
+    },
+    {
+        'name': 'Metadata',
+        'description': 'Metadados do sistema (enums, opções, configurações).'
     },
 ]
 
@@ -59,6 +64,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_router, prefix="/api/auth")
     app.include_router(denuncia_router, prefix="/api")
     app.include_router(fiscalizacao_router, prefix="/api")
+    app.include_router(metadata_router)  # Já tem prefix="/api/metadata" no router
 
     @app.get('/')
     def root():

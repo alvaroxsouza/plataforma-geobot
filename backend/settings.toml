@@ -20,7 +20,7 @@ port = 8000
 # Configurações do Banco de Dados (valores padrão)
 # ----------------------------------------------------------------------------
 db_host = "localhost"
-db_port = 5432
+db_port = 5433
 db_name = "geobot_platform"
 db_user = "geobot_user"
 db_pool_size = 10        # Número de conexões no pool
