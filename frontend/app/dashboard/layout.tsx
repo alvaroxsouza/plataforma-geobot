@@ -1,14 +1,11 @@
-import type { Metadata } from "next";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Dashboard - GeoBot Platform",
-  description: "Painel de controle da plataforma GeoBot",
-};
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return <ProtectedRoute>{children}</ProtectedRoute>;
 }

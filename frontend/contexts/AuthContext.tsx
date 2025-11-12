@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useRouter } from "next/navigation";
 import { authService, ApiError } from "@/lib/services/api";
 import { UserLogin, UserCreate, AuthState } from "@/lib/types/auth";
+import { sessionStorage } from "@/lib/sessionStorage";
 
 interface AuthContextType extends AuthState {
   login: (credentials: UserLogin) => Promise<void>;
@@ -24,7 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    // Verificar se há token salvo no localStorage ao montar o componente
+    // Verificar se há token salvo ao montar o componente
     const checkAuth = async () => {
       try {
         // Garantir que estamos no cliente
@@ -33,22 +34,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        const token = localStorage.getItem("token");
-        
-        if (token) {
-          try {
-            const user = await authService.getCurrentUser(token);
-            // Sincronizar cookie também
-            document.cookie = `token=${token}; path=/; max-age=${60 * 60 * 24 * 7}`;
-            setState({
-              user,
-              token,
-              isAuthenticated: true,
-              isLoading: false,
-            });
-          } catch {
-            localStorage.removeItem("token");
-            document.cookie = 'token=; path=/; max-age=0';
+        // Usar o serviço de sessão para verificar
+        if (sessionStorage.hasValidSession()) {
+          const token = sessionStorage.getToken();
+          const savedUser = sessionStorage.getUser();
+          
+          if (token) {
+            try {
+              console.log('[AuthContext] Verificando token salvo...');
+              // Validar com o servidor
+              const user = await authService.getCurrentUser(token);
+              console.log('[AuthContext] Token válido, usuário autenticado:', user.nome);
+              
+              // Atualizar sessão com dados frescos
+              sessionStorage.saveSession(token, user);
+              
+              setState({
+                user,
+                token,
+                isAuthenticated: true,
+                isLoading: false,
+              });
+            } catch (error) {
+              console.warn('[AuthContext] Token inválido ou expirado, limpando sessão:', error);
+              sessionStorage.clearSession();
+              setState({
+                user: null,
+                token: null,
+                isAuthenticated: false,
+                isLoading: false,
+              });
+              // Redirecionar para login se estiver em rota protegida
+              if (window.location.pathname.startsWith('/dashboard')) {
+                router.push('/auth');
+              }
+            }
+          } else {
+            console.log('[AuthContext] Sessão inválida');
+            sessionStorage.clearSession();
             setState({
               user: null,
               token: null,
@@ -57,6 +80,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
           }
         } else {
+          console.log('[AuthContext] Nenhuma sessão válida encontrada');
+          sessionStorage.clearSession();
           setState({
             user: null,
             token: null,
@@ -65,7 +90,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
         }
       } catch (error) {
-        console.error('Erro ao verificar autenticação:', error);
+        console.error('[AuthContext] Erro ao verificar autenticação:', error);
+        sessionStorage.clearSession();
         setState({
           user: null,
           token: null,
@@ -76,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     checkAuth();
-  }, []);
+  }, [router]);
 
   const login = async (credentials: UserLogin) => {
     try {
@@ -84,15 +110,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const token = response.access_token;
       const user = response.usuario;
 
-      console.log('Login bem-sucedido:', user);
+      console.log('[AuthContext] Login bem-sucedido:', user.nome);
       
-      if (typeof window !== 'undefined') {
-        localStorage.setItem("token", token);
-        // Também salvar nos cookies para o proxy funcionar
-        document.cookie = `token=${token}; path=/; max-age=${response.expires_in || 60 * 60 * 24 * 7}`;
-      }
-
-      console.log('Token salvo com sucesso:', token);
+      // Salvar sessão usando o serviço
+      sessionStorage.saveSession(token, user, response.expires_in || 60 * 60 * 24 * 7);
       
       setState({
         user,
@@ -101,11 +122,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading: false,
       });
 
-      console.log('Estado de autenticação atualizado:', { user, token });
+      console.log('[AuthContext] Estado de autenticação atualizado');
       
       router.push("/dashboard");
     } catch (error) {
-      console.error('Erro ao fazer login:', error);
+      console.error('[AuthContext] Erro ao fazer login:', error);
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
@@ -139,13 +160,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await authService.logout(state.token);
       }
     } catch (error) {
-      console.error('Erro ao fazer logout no servidor:', error);
+      console.error('[AuthContext] Erro ao fazer logout no servidor:', error);
     } finally {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem("token");
-        // Remover cookie também
-        document.cookie = 'token=; path=/; max-age=0';
-      }
+      console.log('[AuthContext] Fazendo logout, limpando sessão');
+      sessionStorage.clearSession();
       setState({
         user: null,
         token: null,

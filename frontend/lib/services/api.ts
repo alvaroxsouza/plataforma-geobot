@@ -26,8 +26,21 @@ const ERROR_MESSAGES: Record<number, string> = {
   503: 'Serviço temporariamente indisponível. Tente novamente.',
 };
 
-async function handleResponse<T>(response: Response): Promise<T> {
+async function handleResponse<T>(response: Response, isAuthCheck: boolean = false): Promise<T> {
   if (!response.ok) {
+    // Se for 401 e não for uma verificação de autenticação, limpar sessão
+    if (response.status === 401 && !isAuthCheck && typeof window !== 'undefined') {
+      console.warn('[API] Token inválido (401), limpando sessão...');
+      localStorage.removeItem("token");
+      document.cookie = 'token=; path=/; max-age=0';
+      // Redirecionar para login após um pequeno delay
+      setTimeout(() => {
+        if (window.location.pathname !== '/auth') {
+          window.location.href = '/auth';
+        }
+      }, 100);
+    }
+    
     let errorMessage = ERROR_MESSAGES[response.status] || `Erro ${response.status}: ${response.statusText}`;
     let errorData: any = {};
     
@@ -114,7 +127,9 @@ export const authService = {
         Authorization: `Bearer ${token}`,
       },
     });
-    return handleResponse<UserResponse>(response);
+    const data = await handleResponse<{ usuario: UserResponse }>(response, true);
+    // A API retorna { usuario: {...} }, então extraímos o usuário
+    return data.usuario;
   },
 
   async logout(token: string): Promise<LogoutResponse> {

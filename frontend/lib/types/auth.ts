@@ -12,6 +12,12 @@ export interface UserCreate {
   senha: string;
 }
 
+export interface Grupo {
+  id: number;
+  nome: string;
+  descricao?: string;
+}
+
 export interface UserResponse {
   id: number;
   uuid: string;
@@ -19,6 +25,7 @@ export interface UserResponse {
   nome: string;
   email: string;
   ativo: boolean;
+  grupos?: Grupo[];
   created_at?: string;
   updated_at?: string;
 }

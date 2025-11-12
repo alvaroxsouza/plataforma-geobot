@@ -1,4 +1,4 @@
-import { Denuncia, LocalizacaoDenuncia } from "./denuncia";
+import { Denuncia, EnderecoDenuncia } from "./denuncia";
 
 export type StatusFiscalizacao = 
   | "agendada"
@@ -29,7 +29,7 @@ export interface Fiscalizacao {
   denuncia?: Denuncia;
   titulo: string;
   descricao: string;
-  localizacao: LocalizacaoDenuncia;
+  localizacao: EnderecoDenuncia;
   equipe: EquipeFiscalizacao[];
   data_agendamento: string;
   data_inicio?: string;
@@ -57,7 +57,7 @@ export interface CreateFiscalizacaoData {
   denuncia_id?: string;
   titulo: string;
   descricao: string;
-  localizacao: LocalizacaoDenuncia;
+  localizacao: EnderecoDenuncia;
   equipe_ids: string[];
   data_agendamento: string;
 }

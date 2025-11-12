@@ -115,9 +115,24 @@ export default function DashboardPage() {
             <h2 className="text-3xl font-bold tracking-tight">
               Bem-vindo de volta, {user?.nome}! 👋
             </h2>
-            <p className="text-muted-foreground">
-              Aqui está um resumo das suas atividades na plataforma
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-muted-foreground">
+                Aqui está um resumo das suas atividades na plataforma
+              </p>
+              {user?.grupos && user.grupos.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">•</span>
+                  {user.grupos.map((grupo, index) => (
+                    <span 
+                      key={index} 
+                      className="text-sm font-semibold bg-primary/10 text-primary px-3 py-1 rounded-full"
+                    >
+                      {grupo.nome}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Info Card */}
@@ -270,6 +285,20 @@ export default function DashboardPage() {
                     <span className="text-sm text-muted-foreground">CPF:</span>
                     <p className="text-sm font-medium">{user?.cpf}</p>
                   </div>
+                  {user?.grupos && user.grupos.length > 0 && (
+                    <div className="flex justify-between items-start">
+                      <span className="text-sm text-muted-foreground">Grupo:</span>
+                      <div className="flex flex-col items-end gap-1">
+                        {user.grupos.map((grupo, index) => (
+                          <div key={index} className="flex items-center gap-1">
+                            <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-1 rounded">
+                              {grupo.nome}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Status:</span>
                     <div className="flex items-center">

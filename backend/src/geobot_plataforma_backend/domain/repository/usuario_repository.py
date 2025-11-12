@@ -2,7 +2,7 @@
 Repository para operações de banco de dados relacionadas a usuários
 """
 from typing import Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 
 from src.geobot_plataforma_backend.domain.entity.usuario import Usuario
@@ -39,7 +39,12 @@ class UsuarioRepository:
         Returns:
             Usuario ou None se não encontrado
         """
-        return self.db.query(Usuario).filter(
+        from src.geobot_plataforma_backend.domain.entity.usuario_grupo import UsuarioGrupo
+        from src.geobot_plataforma_backend.domain.entity.grupo import Grupo
+        
+        return self.db.query(Usuario).options(
+            joinedload(Usuario.grupos).joinedload(UsuarioGrupo.grupo)
+        ).filter(
             Usuario.id == usuario_id,
             Usuario.deleted_at.is_(None)
         ).first()
@@ -54,7 +59,12 @@ class UsuarioRepository:
         Returns:
             Usuario ou None se não encontrado
         """
-        return self.db.query(Usuario).filter(
+        from src.geobot_plataforma_backend.domain.entity.usuario_grupo import UsuarioGrupo
+        from src.geobot_plataforma_backend.domain.entity.grupo import Grupo
+        
+        return self.db.query(Usuario).options(
+            joinedload(Usuario.grupos).joinedload(UsuarioGrupo.grupo)
+        ).filter(
             Usuario.uuid == uuid,
             Usuario.deleted_at.is_(None)
         ).first()
@@ -69,7 +79,12 @@ class UsuarioRepository:
         Returns:
             Usuario ou None se não encontrado
         """
-        return self.db.query(Usuario).filter(
+        from src.geobot_plataforma_backend.domain.entity.usuario_grupo import UsuarioGrupo
+        from src.geobot_plataforma_backend.domain.entity.grupo import Grupo
+        
+        return self.db.query(Usuario).options(
+            joinedload(Usuario.grupos).joinedload(UsuarioGrupo.grupo)
+        ).filter(
             func.lower(Usuario.email) == func.lower(email),
             Usuario.deleted_at.is_(None)
         ).first()

@@ -1,7 +1,7 @@
 """
 DTOs para operações de usuário
 """
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 from pydantic import BaseModel, EmailStr, validator, Field
@@ -55,6 +55,16 @@ class UsuarioLoginDTO(BaseModel):
         from_attributes = True
 
 
+class GrupoSimplificadoDTO(BaseModel):
+    """DTO simplificado para grupo de usuário"""
+    id: int
+    nome: str
+    descricao: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+
+
 class UsuarioResponseDTO(BaseModel):
     """DTO para resposta com dados do usuário (sem informações sensíveis)"""
     id: int
@@ -63,12 +73,24 @@ class UsuarioResponseDTO(BaseModel):
     nome: str
     email: str
     ativo: bool
+    grupos: List[GrupoSimplificadoDTO] = []
     created_at: datetime
     updated_at: datetime
     
     @classmethod
     def from_entity(cls, usuario):
         """Cria um DTO a partir da entidade Usuario"""
+        # Extrair grupos do relacionamento
+        grupos_list = []
+        if hasattr(usuario, 'grupos') and usuario.grupos:
+            for usuario_grupo in usuario.grupos:
+                if hasattr(usuario_grupo, 'grupo') and usuario_grupo.grupo:
+                    grupos_list.append(GrupoSimplificadoDTO(
+                        id=usuario_grupo.grupo.id,
+                        nome=usuario_grupo.grupo.nome,
+                        descricao=usuario_grupo.grupo.descricao
+                    ))
+        
         return cls(
             id=usuario.id,
             uuid=str(usuario.uuid),
@@ -76,6 +98,7 @@ class UsuarioResponseDTO(BaseModel):
             nome=usuario.nome,
             email=usuario.email,
             ativo=usuario.ativo,
+            grupos=grupos_list,
             created_at=usuario.created_at,
             updated_at=usuario.updated_at
         )
@@ -89,6 +112,7 @@ class UsuarioResponseDTO(BaseModel):
             'nome': self.nome,
             'email': self.email,
             'ativo': self.ativo,
+            'grupos': [{'id': g.id, 'nome': g.nome, 'descricao': g.descricao} for g in self.grupos],
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
