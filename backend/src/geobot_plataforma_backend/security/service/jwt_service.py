@@ -3,6 +3,7 @@ Serviço para gerenciamento de tokens JWT
 """
 import jwt
 import uuid as uuid_lib
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -17,8 +18,9 @@ class JWTService:
         self.secret_key = settings.secret_key
         self.algorithm = settings.get('jwt_algorithm', 'HS256')
         self.expiration_minutes = settings.get('jwt_expiration_minutes', 60)
+        self.refresh_token_expiration_days = settings.get('refresh_token_expiration_days', 7)
 
-    def gerar_token(self, usuario_id: int, usuario_uuid: str, email: str) -> tuple[str, int]:
+    def gerar_token(self, usuario_id: int, usuario_uuid: str, email: str, sessao_uuid: Optional[str] = None) -> tuple[str, int]:
         """
         Gera um token JWT para o usuário
         
@@ -26,6 +28,7 @@ class JWTService:
             usuario_id: ID do usuário
             usuario_uuid: UUID do usuário
             email: Email do usuário
+            sessao_uuid: UUID da sessão (opcional)
             
         Returns:
             Tupla com (token, timestamp de expiração)
@@ -39,11 +42,24 @@ class JWTService:
             'email': email,
             'iat': int(now.timestamp()),  # issued at
             'exp': int(exp.timestamp()),  # expiration
-            'jti': str(uuid_lib.uuid4())  # JWT ID único
+            'jti': str(uuid_lib.uuid4()),  # JWT ID único
+            'type': 'access'  # Tipo de token
         }
+        
+        if sessao_uuid:
+            payload['sessao_uuid'] = str(sessao_uuid)
         
         token = jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
         return token, int(exp.timestamp())
+
+    def gerar_refresh_token(self) -> str:
+        """
+        Gera um refresh token seguro
+        
+        Returns:
+            Refresh token em formato seguro
+        """
+        return secrets.token_urlsafe(32)
 
     def validar_token(self, token: str) -> Optional[TokenPayloadDTO]:
         """

@@ -13,6 +13,7 @@ from src.geobot_plataforma_backend.api.routers import (
     denuncia_router,
     fiscalizacao_router,
     metadata_router,
+    sessoes_router,
 )
 
 
@@ -20,6 +21,10 @@ tags_metadata = [
     {
         'name': 'auth',
         'description': 'Endpoints de autenticação e gerenciamento de sessões de usuários.'
+    },
+    {
+        'name': 'sessoes',
+        'description': 'Gerenciamento de sessões ativas, refresh tokens e controle de dispositivos.'
     },
     {
         'name': 'denuncias',
@@ -62,6 +67,7 @@ def create_app() -> FastAPI:
 
     # incluir routers
     app.include_router(auth_router, prefix="/api/auth")
+    app.include_router(sessoes_router, prefix="/api")
     app.include_router(denuncia_router, prefix="/api")
     app.include_router(fiscalizacao_router, prefix="/api")
     app.include_router(metadata_router)  # Já tem prefix="/api/metadata" no router

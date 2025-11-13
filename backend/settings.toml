@@ -37,8 +37,12 @@ auto_run_migrations = true  # Executar migrations automaticamente ao iniciar
 # Segurança e Autenticação
 # ----------------------------------------------------------------------------
 jwt_algorithm = "HS256"
-jwt_expiration_minutes = 60  # Tempo de validade do token (1 hora)
-password_min_length = 8      # Tamanho mínimo de senha
+jwt_expiration_minutes = 1440           # Tempo de validade do token (24 horas)
+refresh_token_expiration_days = 7       # Tempo de validade do refresh token (7 dias)
+max_sessoes_simultaneas = 5             # Máximo de sessões ativas por usuário
+password_min_length = 8                 # Tamanho mínimo de senha
+tentativas_login_max = 5                # Máximo de tentativas de login antes de bloquear
+tempo_bloqueio_minutos = 30             # Tempo em que o usuário fica bloqueado após tentativas falhas
 
 # ----------------------------------------------------------------------------
 # Upload de Arquivos
