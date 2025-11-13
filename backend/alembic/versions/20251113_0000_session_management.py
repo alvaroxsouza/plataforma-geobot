@@ -1,7 +1,7 @@
 """create session management table
 
 Revision ID: 20251113_0000_session_management
-Revises: 20251112_2030_fix_status_fiscalizacao_enum
+Revises: fix_enum_001
 Create Date: 2025-11-13 00:00:00.000000
 
 """
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = '20251113_0000_session_management'
-down_revision = '20251112_2030_fix_status_fiscalizacao_enum'
+down_revision = 'fix_enum_001'
 branch_labels = None
 depends_on = None
 

@@ -59,9 +59,9 @@ def login(body: UsuarioLoginModel, db: Session = Depends(get_db), request: Reque
         # Gera tokens e cria sessão
         jwt_service = JWTService()
         token, exp_timestamp = jwt_service.gerar_token(
-            usuario_id=resultado.usuario_id,
-            usuario_uuid=resultado.usuario_uuid,
-            email=resultado.email
+            usuario_id=resultado.usuario.id,
+            usuario_uuid=resultado.usuario.uuid,
+            email=resultado.usuario.email
         )
         refresh_token = jwt_service.gerar_refresh_token()
         
@@ -74,7 +74,7 @@ def login(body: UsuarioLoginModel, db: Session = Depends(get_db), request: Reque
         # Cria nova sessão
         sessao_service = SessaoService(db)
         sessao = sessao_service.criar_sessao(
-            usuario_id=resultado.usuario_id,
+            usuario_id=resultado.usuario.id,
             token=token,
             refresh_token=refresh_token,
             device_name=device_name,
