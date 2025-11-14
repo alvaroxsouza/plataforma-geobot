@@ -23,7 +23,6 @@ const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.Map
 const TileLayer = dynamic(() => import("react-leaflet").then((mod) => mod.TileLayer), { ssr: false });
 const Marker = dynamic(() => import("react-leaflet").then((mod) => mod.Marker), { ssr: false });
 const Popup = dynamic(() => import("react-leaflet").then((mod) => mod.Popup), { ssr: false });
-const useMapEvents = dynamic(() => import("react-leaflet").then((mod) => mod.useMapEvents), { ssr: false });
 
 // Ícone customizado para o marcador
 const customIcon = typeof window !== 'undefined' ? L.icon({
@@ -36,11 +35,26 @@ const customIcon = typeof window !== 'undefined' ? L.icon({
   shadowSize: [41, 41]
 }) : null;
 
-// Componente para capturar cliques no mapa
-function MapClickHandler({ onLocationSelect }: { onLocationSelect: (lat: number, lng: number) => void }) {
+// Componente para capturar eventos do mapa
+function MapEvents({ onClick }: { onClick: (lat: number, lng: number) => void }) {
+  const [UseMapEvents, setUseMapEvents] = useState<any>(null);
+
+  useEffect(() => {
+    // Importar useMapEvents dinamicamente apenas no cliente
+    import("react-leaflet").then((mod) => {
+      setUseMapEvents(() => mod.useMapEvents);
+    });
+  }, []);
+
+  if (!UseMapEvents) return null;
+
+  return <MapEventsHandler onClick={onClick} useMapEvents={UseMapEvents} />;
+}
+
+function MapEventsHandler({ onClick, useMapEvents }: any) {
   useMapEvents({
-    click: (e) => {
-      onLocationSelect(e.latlng.lat, e.latlng.lng);
+    click: (e: any) => {
+      onClick(e.latlng.lat, e.latlng.lng);
     },
   });
   return null;
@@ -552,7 +566,7 @@ export default function NovaDenunciaPage() {
                         formData.longitude || -35.7089
                       ]}
                       zoom={formData.latitude && formData.longitude ? 16 : 13}
-                      style={{ height: "100%", width: "100%" }}
+                      style={{ height: "100%", width: "100%", cursor: "crosshair" }}
                       key={`${formData.latitude}-${formData.longitude}`}
                     >
                       <TileLayer
@@ -571,7 +585,7 @@ export default function NovaDenunciaPage() {
                           </Popup>
                         </Marker>
                       )}
-                      <MapClickHandler onLocationSelect={handleMapClick} />
+                      <MapEvents onClick={handleMapClick} />
                     </MapContainer>
                   </div>
                 </div>
