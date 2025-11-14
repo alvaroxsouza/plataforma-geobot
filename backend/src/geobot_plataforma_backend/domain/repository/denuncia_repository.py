@@ -5,7 +5,7 @@ from sqlalchemy import func
 
 from src.geobot_plataforma_backend.domain.entity.denuncia import Denuncia
 from src.geobot_plataforma_backend.domain.entity.endereco import Endereco
-from src.geobot_plataforma_backend.domain.entity.enums import StatusDenuncia
+from src.geobot_plataforma_backend.domain.entity.enums import StatusDenuncia, CategoriaDenuncia
 
 
 class DenunciaRepository:
@@ -52,8 +52,9 @@ class DenunciaRepository:
         status: Optional[StatusDenuncia] = None,
         limit: int = 100,
         offset: int = 0,
+        categoria: Optional[CategoriaDenuncia] = None,
     ) -> List[Denuncia]:
-        """Lista denúncias de um usuário específico"""
+        """Lista denúncias de um usuário específico com filtro opcional de categoria"""
         query = (
             self.db.query(Denuncia)
             .options(joinedload(Denuncia.usuario), joinedload(Denuncia.endereco))
@@ -62,6 +63,9 @@ class DenunciaRepository:
 
         if status:
             query = query.filter(Denuncia.status == status)
+        
+        if categoria:
+            query = query.filter(Denuncia.categoria == categoria)
 
         return query.order_by(Denuncia.created_at.desc()).limit(limit).offset(offset).all()
 
@@ -70,14 +74,18 @@ class DenunciaRepository:
         status: Optional[StatusDenuncia] = None,
         limit: int = 100,
         offset: int = 0,
+        categoria: Optional[CategoriaDenuncia] = None,
     ) -> List[Denuncia]:
-        """Lista todas as denúncias (para admins/fiscais)"""
+        """Lista todas as denúncias (para admins/fiscais) com filtro opcional de categoria"""
         query = self.db.query(Denuncia).options(
             joinedload(Denuncia.usuario), joinedload(Denuncia.endereco)
         )
 
         if status:
             query = query.filter(Denuncia.status == status)
+        
+        if categoria:
+            query = query.filter(Denuncia.categoria == categoria)
 
         return query.order_by(Denuncia.created_at.desc()).limit(limit).offset(offset).all()
 
@@ -111,7 +119,8 @@ class DenunciaRepository:
     def contar_total(
         self, 
         usuario_id: Optional[int] = None, 
-        status: Optional[StatusDenuncia] = None
+        status: Optional[StatusDenuncia] = None,
+        categoria: Optional[CategoriaDenuncia] = None
     ) -> int:
         """Conta o total de denúncias com filtros opcionais"""
         query = self.db.query(func.count(Denuncia.id))
@@ -121,5 +130,8 @@ class DenunciaRepository:
 
         if status:
             query = query.filter(Denuncia.status == status)
+        
+        if categoria:
+            query = query.filter(Denuncia.categoria == categoria)
 
         return query.scalar() or 0

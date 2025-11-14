@@ -58,8 +58,13 @@ export default function CalendarioPage() {
 
   // Aplicar filtros
   const fiscalizacoesFiltradas = fiscalizacoes.filter((f) => {
-    if (filtroFiscal !== "todos" && f.fiscal_responsavel_id?.toString() !== filtroFiscal) {
-      return false;
+    // Filtro por fiscal: verificar se o fiscal está na lista de fiscais atribuídos
+    if (filtroFiscal !== "todos") {
+      const fiscalIdNumber = parseInt(filtroFiscal);
+      const temFiscal = f.fiscais?.some(fiscal => fiscal.id === fiscalIdNumber);
+      if (!temFiscal) {
+        return false;
+      }
     }
     if (filtroStatus !== "todos" && f.status_fiscalizacao !== filtroStatus) {
       return false;

@@ -35,4 +35,14 @@ class Usuario(Base):
   # Relacionamentos
   grupos = relationship("UsuarioGrupo", back_populates="usuario")
   denuncias = relationship("Denuncia", back_populates="usuario")
-  fiscalizacoes = relationship("Fiscalizacao", back_populates="fiscal", foreign_keys="Fiscalizacao.fiscal_id")
+  # NOVO: Relação Many-to-Many com fiscalizações
+  fiscalizacoes_atribuidas = relationship(
+      "UsuarioFiscalizacao",
+      back_populates="usuario",
+      cascade="all, delete-orphan"
+  )
+  # Helper property para acessar diretamente as fiscalizações
+  @property
+  def fiscalizacoes(self):
+      """Retorna lista de fiscalizações atribuídas ao usuário"""
+      return [uf.fiscalizacao for uf in self.fiscalizacoes_atribuidas]

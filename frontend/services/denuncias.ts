@@ -118,18 +118,21 @@ export const servicoDenuncias = {
    * 
    * @param parametros - Filtros de busca
    * @param parametros.status - Filtrar por status
+   * @param parametros.categoria - Filtrar por categoria (rua, calcada, ciclovia, etc)
    * @param parametros.todas - Se true, lista todas as denúncias (apenas admin/fiscal)
    * @param parametros.limit - Quantidade de registros por página (padrão: 50)
    * @param parametros.offset - Posição inicial para paginação (padrão: 0)
    */
   listar: (parametros?: {
     status?: StatusDenuncia;
+    categoria?: CategoriaDenuncia;
     todas?: boolean;
     limit?: number;
     offset?: number;
   }) => {
     const queryParams = new URLSearchParams();
     if (parametros?.status) queryParams.append("status", parametros.status);
+    if (parametros?.categoria) queryParams.append("categoria", parametros.categoria);
     if (parametros?.todas !== undefined) queryParams.append("todas", parametros.todas.toString());
     if (parametros?.limit !== undefined) queryParams.append("limit", parametros.limit.toString());
     if (parametros?.offset !== undefined) queryParams.append("offset", parametros.offset.toString());

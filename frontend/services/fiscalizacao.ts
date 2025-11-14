@@ -12,12 +12,22 @@ export interface FiscalizacaoCreate {
   complaint_id: number;
   data_conclusao_prevista?: string | null;
   observacoes?: string | null;
+  fiscais_ids?: number[] | null; // NOVO: Lista de IDs de fiscais
+}
+
+export interface FiscalAtribuido {
+  id: number;
+  nome: string | null;
+  email: string | null;
+  papel: "responsavel" | "auxiliar";
+  data_atribuicao: string | null;
 }
 
 export interface FiscalizacaoResponse {
   id: number;
   complaint_id: number;
-  fiscal_responsavel_id?: number | null;
+  fiscal_responsavel_id?: number | null; // DEPRECATED: Mantido para compatibilidade
+  fiscais: FiscalAtribuido[]; // NOVO: Array com todos os fiscais
   status_fiscalizacao: FiscalizacaoStatus;
   data_inicio: string;
   data_conclusao_prevista?: string | null;
@@ -26,8 +36,9 @@ export interface FiscalizacaoResponse {
   data_atualizacao: string;
 }
 
-export interface FiscalizacaoAtribuir {
+export interface FiscalizacaoAdicionarFiscal {
   fiscal_id: number;
+  papel?: "responsavel" | "auxiliar"; // Padrão: "auxiliar"
 }
 
 export interface FiscalizacaoHistoricoResponse {
@@ -80,9 +91,13 @@ export const fiscalizacaoService = {
   getById: (id: number) => 
     api.get<FiscalizacaoResponse>(`/api/fiscalizacao/${id}`),
 
-  // Atribuir fiscalização a um fiscal (ADMIN)
-  assign: (id: number, data: FiscalizacaoAtribuir) => 
-    api.patch<FiscalizacaoResponse>(`/api/fiscalizacao/${id}/atribuir`, data),
+  // Adicionar fiscal a uma fiscalização (ADMIN)
+  addFiscal: (id: number, data: FiscalizacaoAdicionarFiscal) => 
+    api.post<FiscalizacaoResponse>(`/api/fiscalizacao/${id}/fiscais`, data),
+
+  // Remover fiscal de uma fiscalização (ADMIN)
+  removeFiscal: (id: number, fiscalId: number) => 
+    api.delete<FiscalizacaoResponse>(`/api/fiscalizacao/${id}/fiscais/${fiscalId}`),
 
   // Obter histórico de uma fiscalização (FISCAL/ADMIN)
   getHistory: (id: number) => 

@@ -125,10 +125,12 @@ export default function EquipamentoDenunciasPage() {
       // Tentar carregar todas as denúncias
       let denunciasData: DenunciaResposta[];
       try {
-        denunciasData = await servicoDenuncias.listar({ todas: true });
+        const response = await servicoDenuncias.listar({ todas: true, limit: 1000 });
+        denunciasData = response.data;
       } catch {
         // Se falhar, carregar apenas as do usuário
-        denunciasData = await servicoDenuncias.listar({ todas: false });
+        const response = await servicoDenuncias.listar({ todas: false, limit: 1000 });
+        denunciasData = response.data;
       }
 
       // Filtrar por categoria
@@ -137,10 +139,11 @@ export default function EquipamentoDenunciasPage() {
       );
       
       setDenuncias(denunciasFiltradas);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro ao carregar denúncias:", err);
-      setError("Não foi possível carregar as denúncias. Tente novamente.");
-      toast.error("Erro ao carregar denúncias");
+      const errorMessage = err?.response?.data?.detail || err?.message || "Erro desconhecido";
+      setError(`Não foi possível carregar as denúncias: ${errorMessage}`);
+      toast.error(`Erro: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }

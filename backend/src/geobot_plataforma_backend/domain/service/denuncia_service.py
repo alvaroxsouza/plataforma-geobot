@@ -92,15 +92,16 @@ class DenunciaService:
         status: Optional[StatusDenuncia] = None,
         limit: int = 50,
         offset: int = 0,
+        categoria: Optional[CategoriaDenuncia] = None,
     ) -> List[DenunciaResponseDTO]:
-        """Lista denúncias do usuário atual."""
+        """Lista denúncias do usuário atual com filtro opcional de categoria."""
         usuario = self.usuario_repository.buscar_por_id(usuario_id)
         if not usuario:
             raise ValueError("Usuário não encontrado")
 
         self._verificar_usuario_ativo(usuario)
 
-        denuncias = self.repository.listar_por_usuario(usuario_id, status, limit, offset)
+        denuncias = self.repository.listar_por_usuario(usuario_id, status, limit, offset, categoria)
         return [DenunciaResponseDTO.from_entity(d) for d in denuncias]
 
     def listar_todas_denuncias(
@@ -109,8 +110,9 @@ class DenunciaService:
         status: Optional[StatusDenuncia] = None,
         limit: int = 50,
         offset: int = 0,
+        categoria: Optional[CategoriaDenuncia] = None,
     ) -> List[DenunciaResponseDTO]:
-        """Lista todas as denúncias do sistema. Requer admin/fiscal."""
+        """Lista todas as denúncias do sistema com filtro opcional de categoria. Requer admin/fiscal."""
         usuario = self.usuario_repository.buscar_por_id(usuario_id)
         if not usuario:
             raise ValueError("Usuário não encontrado")
@@ -120,7 +122,7 @@ class DenunciaService:
         if not self._verificar_permissao_admin_fiscal(usuario):
             raise AutorizacaoError("Usuário não tem permissão para listar todas as denúncias")
 
-        denuncias = self.repository.listar_todas(status, limit, offset)
+        denuncias = self.repository.listar_todas(status, limit, offset, categoria)
         return [DenunciaResponseDTO.from_entity(d) for d in denuncias]
 
     def buscar_denuncia(self, denuncia_id: int, usuario_id: int) -> DenunciaResponseDTO:
@@ -219,8 +221,9 @@ class DenunciaService:
         usuario_id: int,
         status: Optional[StatusDenuncia] = None,
         todas: bool = False,
+        categoria_filter: Optional[CategoriaDenuncia] = None,
     ) -> int:
-        """Conta o total de denúncias com filtros."""
+        """Conta o total de denúncias com filtros incluindo categoria."""
         usuario = self.usuario_repository.buscar_por_id(usuario_id)
         if not usuario:
             raise ValueError("Usuário não encontrado")
@@ -230,6 +233,6 @@ class DenunciaService:
         if todas:
             if not self._verificar_permissao_admin_fiscal(usuario):
                 raise AutorizacaoError("Usuário não tem permissão para contar todas as denúncias")
-            return self.repository.contar_total(usuario_id=None, status=status)
+            return self.repository.contar_total(usuario_id=None, status=status, categoria=categoria_filter)
         else:
-            return self.repository.contar_total(usuario_id=usuario_id, status=status)
+            return self.repository.contar_total(usuario_id=usuario_id, status=status, categoria=categoria_filter)

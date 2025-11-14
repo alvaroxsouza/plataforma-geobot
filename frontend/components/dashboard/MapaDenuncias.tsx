@@ -32,8 +32,8 @@ function FitBounds({ denuncias }: { denuncias: DenunciaResposta[] }) {
 
   useEffect(() => {
     if (denuncias.length === 0) {
-      // Centrar no Brasil se não houver denúncias
-      map.setView([-15.7975, -47.8919], 4);
+      // Centrar em Maceió-AL se não houver denúncias
+      map.setView([-9.6498, -35.7089], 13);
       return;
     }
 
@@ -105,9 +105,9 @@ export default function MapaDenuncias({
 }: MapaDenunciasProps) {
   const router = useRouter();
 
-  // Coordenadas padrão (centro do Brasil)
-  const defaultCenter: [number, number] = [-15.7975, -47.8919];
-  const defaultZoom = 4;
+  // Coordenadas padrão (Maceió-AL)
+  const defaultCenter: [number, number] = [-9.6498, -35.7089];
+  const defaultZoom = 13;
 
   const formatData = (dataString: string) => {
     return new Date(dataString).toLocaleDateString("pt-BR");

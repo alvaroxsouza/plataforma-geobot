@@ -20,7 +20,12 @@ const getAuthHeaders = (): HeadersInit => {
 const handleApiError = async (response: Response) => {
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: "Erro desconhecido" }));
-    throw new Error(error.detail || `Erro ${response.status}`);
+    const apiError: any = new Error(error.detail || `Erro ${response.status}`);
+    apiError.response = {
+      status: response.status,
+      data: error
+    };
+    throw apiError;
   }
   return response;
 };

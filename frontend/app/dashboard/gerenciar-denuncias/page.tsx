@@ -67,7 +67,7 @@ export default function GerenciarDenunciasPage() {
   const [denunciaSelecionada, setDenunciaSelecionada] = useState<DenunciaResposta | null>(null);
   const [observacoes, setObservacoes] = useState("");
   const [dataConclusao, setDataConclusao] = useState("");
-  const [fiscalSelecionado, setFiscalSelecionado] = useState<string>("");
+  const [fiscaisSelecionados, setFiscaisSelecionados] = useState<number[]>([]); // MODIFICADO: array de IDs
   const [fiscaisDisponiveis, setFiscaisDisponiveis] = useState<Usuario[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -121,6 +121,7 @@ export default function GerenciarDenunciasPage() {
     setDenunciaSelecionada(denuncia);
     setObservacoes("");
     setDataConclusao("");
+    setFiscaisSelecionados([]); // MODIFICADO: limpar array
     setFiscalizacaoDialog(true);
   };
 
@@ -131,33 +132,25 @@ export default function GerenciarDenunciasPage() {
     try {
       setSubmitting(true);
       
-      // Criar fiscalização
-      const fiscalizacao = await fiscalizacaoService.create({
+      // Criar fiscalização com múltiplos fiscais
+      await fiscalizacaoService.create({
         complaint_id: denunciaSelecionada.id,
         observacoes: observacoes || null,
         data_conclusao_prevista: dataConclusao || null,
+        fiscais_ids: fiscaisSelecionados.length > 0 ? fiscaisSelecionados : null, // MODIFICADO: enviar array
       });
 
-      // Se um fiscal foi selecionado, atribuir a fiscalização
-      if (fiscalSelecionado) {
-        try {
-          await fiscalizacaoService.assign(fiscalizacao.id, {
-            fiscal_id: parseInt(fiscalSelecionado),
-          });
-          toast.success("Denúncia enviada e fiscal atribuído com sucesso!");
-        } catch (error) {
-          console.error("Erro ao atribuir fiscal:", error);
-          toast.warning("Fiscalização criada, mas erro ao atribuir fiscal");
-        }
-      } else {
-        toast.success("Denúncia enviada para fiscalização com sucesso!");
-      }
+      toast.success(
+        fiscaisSelecionados.length > 0
+          ? `Denúncia enviada para fiscalização com ${fiscaisSelecionados.length} fiscal(is) atribuído(s)!`
+          : "Denúncia enviada para fiscalização com sucesso!"
+      );
 
       setFiscalizacaoDialog(false);
       setDenunciaSelecionada(null);
       setObservacoes("");
       setDataConclusao("");
-      setFiscalSelecionado("");
+      setFiscaisSelecionados([]); // MODIFICADO: limpar array
       
       // Recarregar denúncias
       await carregarDenuncias();
@@ -403,31 +396,58 @@ export default function GerenciarDenunciasPage() {
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="fiscal">Fiscal Responsável (Opcional)</Label>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full justify-between">
-                    {fiscalSelecionado
-                      ? fiscaisDisponiveis.find((f) => f.id.toString() === fiscalSelecionado)?.nome
-                      : "Selecionar Fiscal"}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-full">
-                  <DropdownMenuLabel>Fiscais Disponíveis</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setFiscalSelecionado("")}>
-                    Nenhum (atribuir depois)
-                  </DropdownMenuItem>
-                  {fiscaisDisponiveis.map((fiscal) => (
-                    <DropdownMenuItem
+              <Label htmlFor="fiscais">Fiscais (Opcional - Selecione múltiplos)</Label>
+              <div className="border rounded-md p-3 space-y-2 max-h-60 overflow-y-auto">
+                <div className="text-sm text-muted-foreground mb-2">
+                  {fiscaisSelecionados.length > 0 
+                    ? `${fiscaisSelecionados.length} fiscal(is) selecionado(s)` 
+                    : "Nenhum fiscal selecionado"}
+                </div>
+                {fiscaisDisponiveis.map((fiscal) => {
+                  const isSelected = fiscaisSelecionados.includes(fiscal.id);
+                  const isPrimeiro = fiscaisSelecionados[0] === fiscal.id;
+                  
+                  return (
+                    <div
                       key={fiscal.id}
-                      onClick={() => setFiscalSelecionado(fiscal.id.toString())}
+                      className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
+                        isSelected ? "bg-primary/10 border border-primary" : "hover:bg-muted"
+                      }`}
+                      onClick={() => {
+                        if (isSelected) {
+                          setFiscaisSelecionados(prev => prev.filter(id => id !== fiscal.id));
+                        } else {
+                          setFiscaisSelecionados(prev => [...prev, fiscal.id]);
+                        }
+                      }}
                     >
-                      {fiscal.nome} - {fiscal.email}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        readOnly
+                        className="cursor-pointer"
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">{fiscal.nome}</div>
+                        <div className="text-xs text-muted-foreground">{fiscal.email}</div>
+                      </div>
+                      {isPrimeiro && (
+                        <Badge variant="default" className="text-xs">
+                          Responsável
+                        </Badge>
+                      )}
+                    </div>
+                  );
+                })}
+                {fiscaisDisponiveis.length === 0 && (
+                  <div className="text-sm text-muted-foreground text-center py-4">
+                    Nenhum fiscal disponível
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                O primeiro fiscal selecionado será o responsável. Os demais serão auxiliares.
+              </p>
             </div>
 
             <div className="space-y-2">

@@ -90,26 +90,27 @@ def _value_error_to_status(err: ValueError) -> int:
 @router.get(
     "/",
     summary="Listar Denuncias",
-    description="Lista denúncias do usuário ou todas (para admin/fiscal).",
+    description="Lista denúncias do usuário ou todas (para admin/fiscal) com filtros.",
     operation_id="listar_denuncias_api_denuncias__get",
 )
 def listar_denuncias(
     status_filter: Optional[StatusDenuncia] = Query(None, alias="status", description="Filtrar por status"),
+    categoria_filter: Optional[CategoriaDenuncia] = Query(None, alias="categoria", description="Filtrar por categoria"),
     todas: bool = Query(False, description="Se true, lista todas as denúncias (apenas admin/fiscal)"),
-    limit: int = Query(50, ge=1, le=100, description="Quantidade de registros por página"),
+    limit: int = Query(50, ge=1, le=10000, description="Quantidade de registros por página"),
     offset: int = Query(0, ge=0, description="Posição inicial (para paginação)"),
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Lista denúncias do usuário ou todas (para admin/fiscal) com paginação."""
+    """Lista denúncias do usuário ou todas (para admin/fiscal) com paginação e filtros."""
     service = DenunciaService(db)
     try:
         if todas:
-            denuncias = service.listar_todas_denuncias(current_user.id, status_filter, limit, offset)
-            total = service.contar_total_denuncias(current_user.id, status_filter, todas=True)
+            denuncias = service.listar_todas_denuncias(current_user.id, status_filter, limit, offset, categoria_filter)
+            total = service.contar_total_denuncias(current_user.id, status_filter, todas=True, categoria_filter=categoria_filter)
         else:
-            denuncias = service.listar_minhas_denuncias(current_user.id, status_filter, limit, offset)
-            total = service.contar_total_denuncias(current_user.id, status_filter, todas=False)
+            denuncias = service.listar_minhas_denuncias(current_user.id, status_filter, limit, offset, categoria_filter)
+            total = service.contar_total_denuncias(current_user.id, status_filter, todas=False, categoria_filter=categoria_filter)
         
         return {
             "data": [denuncia.to_dict() for denuncia in denuncias],

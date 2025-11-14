@@ -79,10 +79,11 @@ export default function MapaDenunciasPage() {
       } else {
         toast.success(`${denunciasComCoordenadas.length} denúncia(s) carregada(s) no mapa`);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro ao carregar denúncias:", err);
-      setError("Não foi possível carregar as denúncias. Tente novamente.");
-      toast.error("Erro ao carregar denúncias");
+      const errorMessage = err?.response?.data?.detail || err?.message || "Erro desconhecido";
+      setError(`Não foi possível carregar as denúncias: ${errorMessage}`);
+      toast.error(`Erro: ${errorMessage}`);
     } finally {
       setLoading(false);
     }

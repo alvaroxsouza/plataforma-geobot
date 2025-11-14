@@ -20,7 +20,7 @@ class Fiscalizacao(Base):
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     uuid = Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True, nullable=False)
     denuncia_id = Column(BigInteger, ForeignKey("geobot.denuncias.id", ondelete="RESTRICT"), nullable=False)
-    fiscal_id = Column(BigInteger, ForeignKey("geobot.usuarios.id", ondelete="RESTRICT"), nullable=False)
+    # REMOVIDO: fiscal_id (agora usa relação Many-to-Many via usuario_fiscalizacao)
     codigo = Column(String(50), unique=True, nullable=False)
     status = Column(Enum(StatusFiscalizacao, name="status_fiscalizacao", values_callable=lambda x: [e.value for e in x]), default=StatusFiscalizacao.AGUARDANDO, nullable=False)
     data_inicializacao = Column(DateTime(timezone=True))
@@ -31,7 +31,18 @@ class Fiscalizacao(Base):
 
     # Relacionamentos
     denuncia = relationship("Denuncia", back_populates="fiscalizacoes")
-    fiscal = relationship("Usuario", back_populates="fiscalizacoes", foreign_keys="Fiscalizacao.fiscal_id")
+    # NOVO: Relação Many-to-Many com usuários (fiscais)
+    fiscais_atribuidos = relationship(
+        "UsuarioFiscalizacao",
+        back_populates="fiscalizacao",
+        cascade="all, delete-orphan"
+    )
+    # Helper property para acessar diretamente os usuários fiscais
+    @property
+    def fiscais(self):
+        """Retorna lista de usuários fiscais atribuídos"""
+        return [uf.usuario for uf in self.fiscais_atribuidos]
+    
     analises = relationship("Analise", back_populates="fiscalizacao")
     etapas = relationship("EtapaFiscalizacao", back_populates="fiscalizacao", cascade="all, delete-orphan")
     arquivos_fiscalizacao = relationship("ArquivoFiscalizacao", back_populates="fiscalizacao", cascade="all, delete-orphan")

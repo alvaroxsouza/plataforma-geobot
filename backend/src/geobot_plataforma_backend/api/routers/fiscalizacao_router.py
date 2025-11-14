@@ -20,9 +20,15 @@ class FiscalizacaoCreatePayload(BaseModel):
     complaint_id: int
     data_conclusao_prevista: Optional[str] = None
     observacoes: Optional[str] = None
+    fiscais_ids: Optional[List[int]] = None  # Lista de IDs de fiscais a atribuir
 
 
-class FiscalizacaoAtribuirPayload(BaseModel):
+class FiscalizacaoAdicionarFiscalPayload(BaseModel):
+    fiscal_id: int
+    papel: str = "auxiliar"  # "responsavel" ou "auxiliar"
+
+
+class FiscalizacaoRemoverFiscalPayload(BaseModel):
     fiscal_id: int
 
 
@@ -31,12 +37,31 @@ class StatusUpdatePayload(BaseModel):
 
 
 def _to_dict(f):
-    """Converte fiscalização para dict"""
+    """Converte fiscalização para dict com suporte a múltiplos fiscais"""
+    # Obter todos os fiscais com seus papéis
+    fiscais_data = []
+    for atribuicao in f.fiscais_atribuidos:
+        fiscais_data.append({
+            'id': atribuicao.usuario_id,
+            'nome': atribuicao.usuario.nome if atribuicao.usuario else None,
+            'email': atribuicao.usuario.email if atribuicao.usuario else None,
+            'papel': atribuicao.papel,
+            'data_atribuicao': atribuicao.data_atribuicao.isoformat() if atribuicao.data_atribuicao else None
+        })
+    
+    # Encontrar o fiscal responsável (para compatibilidade com frontend antigo)
+    fiscal_responsavel_id = None
+    for atribuicao in f.fiscais_atribuidos:
+        if atribuicao.papel == "responsavel":
+            fiscal_responsavel_id = atribuicao.usuario_id
+            break
+    
     return {
         'id': f.id,
         'uuid': str(f.uuid),
         'complaint_id': f.denuncia_id,  # Frontend espera complaint_id
-        'fiscal_responsavel_id': f.fiscal_id,  # Frontend espera fiscal_responsavel_id
+        'fiscal_responsavel_id': fiscal_responsavel_id,  # DEPRECATED: Mantido para compatibilidade
+        'fiscais': fiscais_data,  # NOVO: Array com todos os fiscais e seus papéis
         'codigo': f.codigo,
         'status_fiscalizacao': f.status.value if hasattr(f.status, 'value') else f.status,  # Frontend espera status_fiscalizacao
         'data_inicio': f.data_inicializacao.isoformat() if f.data_inicializacao else None,  # Frontend espera data_inicio
@@ -61,13 +86,17 @@ def criar_fiscalizacao(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Cria nova fiscalização. Atribui ao usuário atual como fiscal."""
+    """
+    Cria nova fiscalização com múltiplos fiscais.
+    Se fiscais_ids não for fornecido, atribui ao usuário atual como fiscal responsável.
+    """
     service = FiscalizacaoService(db)
     try:
         fiscalizacao = service.criar_fiscalizacao(
             denuncia_id=payload.complaint_id,
             observacoes=payload.observacoes,
-            usuario_id=current_user.id
+            usuario_id=current_user.id,
+            fiscais_ids=payload.fiscais_ids  # NOVO: Aceita lista de fiscais
         )
         return _to_dict(fiscalizacao)
     except AutorizacaoError as err:
@@ -147,24 +176,53 @@ def obter_fiscalizacao(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao buscar fiscalização") from err
 
 
-@router.patch('/{id}/atribuir')
-def atribuir_fiscal(
+@router.post('/{id}/fiscais')
+def adicionar_fiscal(
     id: int,
-    payload: FiscalizacaoAtribuirPayload,
+    payload: FiscalizacaoAdicionarFiscalPayload,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Atribui um fiscal a uma fiscalização."""
+    """Adiciona um fiscal a uma fiscalização existente."""
     service = FiscalizacaoService(db)
     try:
-        fiscalizacao = service.atribuir_fiscal(id, payload.fiscal_id, current_user.id)
+        fiscalizacao = service.adicionar_fiscal(
+            fiscalizacao_id=id,
+            novo_fiscal_id=payload.fiscal_id,
+            usuario_id=current_user.id,
+            papel=payload.papel
+        )
         return _to_dict(fiscalizacao)
     except AutorizacaoError as err:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(err)) from err
     except ValueError as err:
         raise HTTPException(status_code=_value_error_to_status(err), detail=str(err)) from err
     except Exception as err:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao atribuir fiscal") from err
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao adicionar fiscal") from err
+
+
+@router.delete('/{id}/fiscais/{fiscal_id}')
+def remover_fiscal(
+    id: int,
+    fiscal_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Remove um fiscal de uma fiscalização."""
+    service = FiscalizacaoService(db)
+    try:
+        fiscalizacao = service.remover_fiscal(
+            fiscalizacao_id=id,
+            fiscal_id=fiscal_id,
+            usuario_id=current_user.id
+        )
+        return _to_dict(fiscalizacao)
+    except AutorizacaoError as err:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(err)) from err
+    except ValueError as err:
+        raise HTTPException(status_code=_value_error_to_status(err), detail=str(err)) from err
+    except Exception as err:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao remover fiscal") from err
 
 
 @router.patch('/{id}/status')
