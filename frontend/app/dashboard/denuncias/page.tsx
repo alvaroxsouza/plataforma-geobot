@@ -1,17 +1,26 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Search, Filter, MapPin, Calendar, AlertCircle, Home, ChevronRight, Loader2, Eye } from "lucide-react";
+import { Plus, Search, Filter, MapPin, Calendar, AlertCircle, Home, ChevronRight, Loader2, Eye, Map } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import Link from "next/link";
 
 import { servicoDenuncias, DenunciaResposta, StatusDenuncia } from "@/services/denuncias";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useMetadata } from "@/hooks/useMetadata";
 
 interface DenunciaStats {
   total: number;
@@ -23,45 +32,18 @@ interface DenunciaStats {
   canceladas: number;
 }
 
-const categoriasLabels: Record<string, string> = {
-  calcada: "Calçada",
-  rua: "Rua",
-  ciclovia: "Ciclovia",
-  semaforo: "Semáforo",
-  sinalizacao: "Sinalização",
-  iluminacao: "Iluminação",
-  lixo_entulho: "Lixo e Entulho",
-  poluicao: "Poluição",
-  barulho: "Barulho",
-  outros: "Outros",
-};
-
-const statusLabels: Record<StatusDenuncia, string> = {
-  pendente: "Pendente",
-  em_analise: "Em Análise",
-  em_fiscalizacao: "Em Fiscalização",
-  concluida: "Concluída",
-  arquivada: "Arquivada",
-  cancelada: "Cancelada",
-};
-
-const statusColors: Record<StatusDenuncia, string> = {
-  pendente: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  em_analise: "bg-blue-100 text-blue-800 border-blue-200",
-  em_fiscalizacao: "bg-purple-100 text-purple-800 border-purple-200",
-  concluida: "bg-green-100 text-green-800 border-green-200",
-  arquivada: "bg-gray-100 text-gray-800 border-gray-200",
-  cancelada: "bg-red-100 text-red-800 border-red-200",
-};
-
-const prioridadeColors: Record<string, string> = {
-  baixa: "bg-blue-100 text-blue-800",
-  media: "bg-yellow-100 text-yellow-800",
-  alta: "bg-orange-100 text-orange-800",
-  urgente: "bg-red-100 text-red-800",
-};
-
 export default function DenunciasPage() {
+  // Metadados do sistema
+  const {
+    status: statusOptions,
+    getStatusLabel,
+    getStatusColor,
+    getCategoriaLabel,
+    getCategoriaIcone,
+    getPrioridadeLabel,
+    getPrioridadeColor,
+    loading: metadataLoading,
+  } = useMetadata();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [denuncias, setDenuncias] = useState<DenunciaResposta[]>([]);
@@ -78,6 +60,12 @@ export default function DenunciasPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusAtivo, setStatusAtivo] = useState<"todas" | StatusDenuncia>("todas");
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  
+  // Paginação
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const [itensPorPagina] = useState(20);
+  const [totalItens, setTotalItens] = useState(0);
 
   // Verificar se usuário é admin ou fiscal - será validado no backend
   // Por ora, assumimos que todos podem tentar carregar, mas o backend restringirá
@@ -88,17 +76,29 @@ export default function DenunciasPage() {
       setIsLoading(true);
       setError(null);
       
+      const offset = (paginaAtual - 1) * itensPorPagina;
+      
       // Tentar carregar todas as denúncias primeiro (admin/fiscal)
       try {
-        const responseAll = await servicoDenuncias.listar({ todas: true });
-        setDenuncias(responseAll);
-        calcularEstatisticas(responseAll);
+        const responseAll = await servicoDenuncias.listar({ 
+          todas: true,
+          limit: itensPorPagina,
+          offset: offset
+        });
+        setDenuncias(responseAll.data);
+        setTotalItens(responseAll.pagination.total);
+        calcularEstatisticas(responseAll.data);
         setIsAdminOuFiscal(true);
       } catch {
         // Se falhar, carregar apenas as do usuário (cidadão)
-        const responseMy = await servicoDenuncias.listar({ todas: false });
-        setDenuncias(responseMy);
-        calcularEstatisticas(responseMy);
+        const responseMy = await servicoDenuncias.listar({ 
+          todas: false,
+          limit: itensPorPagina,
+          offset: offset
+        });
+        setDenuncias(responseMy.data);
+        setTotalItens(responseMy.pagination.total);
+        calcularEstatisticas(responseMy.data);
         setIsAdminOuFiscal(false);
       }
     } catch (err) {
@@ -125,7 +125,7 @@ export default function DenunciasPage() {
   useEffect(() => {
     carregarDenuncias();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [paginaAtual]);
 
   useEffect(() => {
     let filtered = denuncias;
@@ -143,12 +143,12 @@ export default function DenunciasPage() {
         d.endereco.logradouro.toLowerCase().includes(query) ||
         d.endereco.bairro.toLowerCase().includes(query) ||
         d.endereco.cidade.toLowerCase().includes(query) ||
-        categoriasLabels[d.categoria].toLowerCase().includes(query)
+        getCategoriaLabel(d.categoria).toLowerCase().includes(query)
       );
     }
 
     setDenunciasFiltradas(filtered);
-  }, [denuncias, statusAtivo, searchQuery]);
+  }, [denuncias, statusAtivo, searchQuery, getCategoriaLabel]);
 
   const statsCards = [
     { 
@@ -207,6 +207,12 @@ export default function DenunciasPage() {
           <Link href="/dashboard">
             <Button variant="outline">
               Voltar ao Dashboard
+            </Button>
+          </Link>
+          <Link href="/dashboard/denuncias/mapa">
+            <Button variant="outline" className="gap-2">
+              <Map className="h-4 w-4" />
+              Ver Mapa
             </Button>
           </Link>
           <Link href="/dashboard/denuncias/nova">
@@ -322,6 +328,24 @@ export default function DenunciasPage() {
                   className="pl-10"
                 />
               </div>
+              <div className="flex gap-1 border rounded-md p-1">
+                <Button 
+                  variant={viewMode === "cards" ? "default" : "ghost"} 
+                  size="sm"
+                  onClick={() => setViewMode("cards")}
+                  className="h-8"
+                >
+                  Cards
+                </Button>
+                <Button 
+                  variant={viewMode === "table" ? "default" : "ghost"} 
+                  size="sm"
+                  onClick={() => setViewMode("table")}
+                  className="h-8"
+                >
+                  Tabela
+                </Button>
+              </div>
               <Button variant="outline" size="icon" onClick={carregarDenuncias}>
                 <Filter className="h-4 w-4" />
               </Button>
@@ -383,7 +407,7 @@ export default function DenunciasPage() {
                   </Link>
                 )}
               </div>
-            ) : (
+            ) : viewMode === "cards" ? (
               <div className="mt-6 space-y-4">
                 {denunciasFiltradas.map((denuncia) => (
                   <Card key={denuncia.id} className="hover:shadow-lg transition-all hover:border-primary/50 group">
@@ -391,14 +415,14 @@ export default function DenunciasPage() {
                       <div className="flex flex-col gap-4">
                         {/* Header com Badges e Categoria */}
                         <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant="outline" className={`${statusColors[denuncia.status]} font-medium`}>
-                            {statusLabels[denuncia.status]}
+                          <Badge variant="outline" className={`${getStatusColor(denuncia.status)} font-medium`}>
+                            {getStatusLabel(denuncia.status)}
                           </Badge>
-                          <Badge variant="outline" className={`${prioridadeColors[denuncia.prioridade]} font-medium`}>
-                            Prioridade: {denuncia.prioridade.charAt(0).toUpperCase() + denuncia.prioridade.slice(1)}
+                          <Badge variant="outline" className={`${getPrioridadeColor(denuncia.prioridade)} font-medium`}>
+                            Prioridade: {getPrioridadeLabel(denuncia.prioridade)}
                           </Badge>
                           <Badge variant="secondary" className="font-medium">
-                            {categoriasLabels[denuncia.categoria]}
+                            {getCategoriaLabel(denuncia.categoria)}
                           </Badge>
                         </div>
 
@@ -463,9 +487,102 @@ export default function DenunciasPage() {
                   </Card>
                 ))}
               </div>
+            ) : (
+              <div className="mt-6">
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ID</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Categoria</TableHead>
+                        <TableHead>Prioridade</TableHead>
+                        <TableHead>Endereço</TableHead>
+                        <TableHead>Data</TableHead>
+                        {isAdminOuFiscal && <TableHead>Denunciante</TableHead>}
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {denunciasFiltradas.map((denuncia) => (
+                        <TableRow key={denuncia.id} className="hover:bg-muted/50">
+                          <TableCell className="font-medium">#{denuncia.id}</TableCell>
+                          <TableCell>
+                            <Badge className={getStatusColor(denuncia.status)}>
+                              {getStatusLabel(denuncia.status)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{getCategoriaLabel(denuncia.categoria)}</TableCell>
+                          <TableCell>
+                            <Badge className={getPrioridadeColor(denuncia.prioridade)}>
+                              {getPrioridadeLabel(denuncia.prioridade)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="max-w-[200px]">
+                              <div className="font-medium truncate">{denuncia.endereco.logradouro}</div>
+                              <div className="text-sm text-muted-foreground truncate">
+                                {denuncia.endereco.bairro}, {denuncia.endereco.cidade}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {format(new Date(denuncia.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                          </TableCell>
+                          {isAdminOuFiscal && (
+                            <TableCell className="text-sm">{denuncia.usuario.nome}</TableCell>
+                          )}
+                          <TableCell className="text-right">
+                            <Link href={`/dashboard/denuncias/${denuncia.id}`}>
+                              <Button variant="ghost" size="sm">
+                                <Eye className="h-4 w-4 mr-2" />
+                                Ver
+                              </Button>
+                            </Link>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
             )}
           </Tabs>
         </CardContent>
+        
+        {/* Controles de Paginação */}
+        {!isLoading && Math.ceil(totalItens / itensPorPagina) > 1 && (
+          <CardContent className="pt-0">
+            <div className="flex items-center justify-between px-2 py-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                Mostrando {((paginaAtual - 1) * itensPorPagina) + 1} a {Math.min(paginaAtual * itensPorPagina, totalItens)} de {totalItens} denúncias
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPaginaAtual(prev => Math.max(1, prev - 1))}
+                  disabled={paginaAtual === 1}
+                >
+                  Anterior
+                </Button>
+                <div className="flex items-center gap-2 px-3">
+                  <span className="text-sm">
+                    Página {paginaAtual} de {Math.ceil(totalItens / itensPorPagina)}
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPaginaAtual(prev => Math.min(Math.ceil(totalItens / itensPorPagina), prev + 1))}
+                  disabled={paginaAtual >= Math.ceil(totalItens / itensPorPagina)}
+                >
+                  Próxima
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        )}
       </Card>
 
       {/* Quick Actions */}

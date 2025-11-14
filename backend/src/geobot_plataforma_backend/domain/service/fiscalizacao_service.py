@@ -50,6 +50,19 @@ class FiscalizacaoService:
         if not denuncia:
             raise ValueError("Denúncia não encontrada")
 
+        # VALIDAÇÃO 1-PARA-1: Verificar se a denúncia já está em fiscalização ou foi concluída
+        from src.geobot_plataforma_backend.domain.entity.enums import StatusDenuncia
+        if denuncia.status not in [StatusDenuncia.PENDENTE, StatusDenuncia.EM_ANALISE]:
+            raise ValueError("Esta denúncia já está em processo de fiscalização ou foi concluída.")
+
+        # Verificar se já existe uma fiscalização ativa para esta denúncia
+        fiscalizacao_existente = self.db.query(Fiscalizacao).filter(
+            Fiscalizacao.denuncia_id == denuncia_id,
+            Fiscalizacao.status.in_([StatusFiscalizacao.AGUARDANDO, StatusFiscalizacao.EM_ANDAMENTO])
+        ).first()
+        if fiscalizacao_existente:
+            raise ValueError("Esta denúncia já possui uma fiscalização ativa.")
+
         # Gerar código único
         codigo = f"FISC-{uuid_lib.uuid4().hex[:8].upper()}"
 
@@ -61,7 +74,12 @@ class FiscalizacaoService:
             status=StatusFiscalizacao.AGUARDANDO
         )
         
+        # Atualizar status da denúncia para EM_FISCALIZACAO
+        from src.geobot_plataforma_backend.domain.entity.enums import StatusDenuncia
+        denuncia.status = StatusDenuncia.EM_FISCALIZACAO
+        
         self.db.add(fiscalizacao)
+        self.db.add(denuncia)
         self.db.commit()
         # Não fazer refresh para evitar problemas com relacionamentos
         # O objeto já tem os atributos necessários após o commit
@@ -170,7 +188,11 @@ class FiscalizacaoService:
         novo_status: StatusFiscalizacao,
         usuario_id: int
     ) -> Fiscalizacao:
-        """Atualiza o status de uma fiscalização."""
+        """Atualiza o status de uma fiscalização.
+        
+        SINCRONIZAÇÃO: Quando a fiscalização é concluída, a denúncia associada
+        também é automaticamente marcada como concluída.
+        """
         usuario = self.usuario_repository.buscar_por_id(usuario_id)
         if not usuario:
             raise ValueError("Usuário não encontrado")
@@ -185,8 +207,18 @@ class FiscalizacaoService:
         if fiscalizacao.fiscal_id != usuario_id and not self._verificar_permissao_admin_fiscal(usuario):
             raise AutorizacaoError("Usuário não tem permissão para atualizar esta fiscalização")
 
+        # Atualizar status da fiscalização
         fiscalizacao.status = novo_status
         self.db.add(fiscalizacao)
+        
+        # SINCRONIZAÇÃO: Se a fiscalização foi concluída, concluir a denúncia também
+        if novo_status == StatusFiscalizacao.CONCLUIDA:
+            denuncia = self.db.query(Denuncia).filter(Denuncia.id == fiscalizacao.denuncia_id).first()
+            if denuncia:
+                from src.geobot_plataforma_backend.domain.entity.enums import StatusDenuncia
+                denuncia.status = StatusDenuncia.CONCLUIDA
+                self.db.add(denuncia)
+        
         self.db.commit()
         self.db.refresh(fiscalizacao)
 

@@ -73,6 +73,25 @@ export interface DenunciaResposta {
 }
 
 /**
+ * Interface para metadados de paginação
+ */
+export interface PaginationMeta {
+  total: number;
+  limit: number;
+  offset: number;
+  has_next: boolean;
+  has_prev: boolean;
+}
+
+/**
+ * Interface para resposta paginada de denúncias
+ */
+export interface DenunciaRespostaPaginada {
+  data: DenunciaResposta[];
+  pagination: PaginationMeta;
+}
+
+/**
  * Interface para atualização de denúncia
  * Apenas campos editáveis: observacao e prioridade
  */
@@ -94,23 +113,29 @@ export interface DenunciaAtualizarStatus {
  */
 export const servicoDenuncias = {
   /**
-   * Lista denúncias do usuário ou todas (para admin/fiscal)
+   * Lista denúncias do usuário ou todas (para admin/fiscal) com paginação
    * GET /api/denuncias/
    * 
    * @param parametros - Filtros de busca
    * @param parametros.status - Filtrar por status
    * @param parametros.todas - Se true, lista todas as denúncias (apenas admin/fiscal)
+   * @param parametros.limit - Quantidade de registros por página (padrão: 50)
+   * @param parametros.offset - Posição inicial para paginação (padrão: 0)
    */
   listar: (parametros?: {
     status?: StatusDenuncia;
     todas?: boolean;
+    limit?: number;
+    offset?: number;
   }) => {
     const queryParams = new URLSearchParams();
     if (parametros?.status) queryParams.append("status", parametros.status);
     if (parametros?.todas !== undefined) queryParams.append("todas", parametros.todas.toString());
+    if (parametros?.limit !== undefined) queryParams.append("limit", parametros.limit.toString());
+    if (parametros?.offset !== undefined) queryParams.append("offset", parametros.offset.toString());
     
     const query = queryParams.toString();
-    return api.get<DenunciaResposta[]>(`/api/denuncias/${query ? `?${query}` : ""}`);
+    return api.get<DenunciaRespostaPaginada>(`/api/denuncias/${query ? `?${query}` : ""}`);
   },
 
   /**

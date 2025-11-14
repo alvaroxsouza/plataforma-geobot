@@ -90,6 +90,8 @@ class DenunciaService:
         self,
         usuario_id: int,
         status: Optional[StatusDenuncia] = None,
+        limit: int = 50,
+        offset: int = 0,
     ) -> List[DenunciaResponseDTO]:
         """Lista denúncias do usuário atual."""
         usuario = self.usuario_repository.buscar_por_id(usuario_id)
@@ -98,13 +100,15 @@ class DenunciaService:
 
         self._verificar_usuario_ativo(usuario)
 
-        denuncias = self.repository.listar_por_usuario(usuario_id, status)
+        denuncias = self.repository.listar_por_usuario(usuario_id, status, limit, offset)
         return [DenunciaResponseDTO.from_entity(d) for d in denuncias]
 
     def listar_todas_denuncias(
         self,
         usuario_id: int,
         status: Optional[StatusDenuncia] = None,
+        limit: int = 50,
+        offset: int = 0,
     ) -> List[DenunciaResponseDTO]:
         """Lista todas as denúncias do sistema. Requer admin/fiscal."""
         usuario = self.usuario_repository.buscar_por_id(usuario_id)
@@ -116,7 +120,7 @@ class DenunciaService:
         if not self._verificar_permissao_admin_fiscal(usuario):
             raise AutorizacaoError("Usuário não tem permissão para listar todas as denúncias")
 
-        denuncias = self.repository.listar_todas(status)
+        denuncias = self.repository.listar_todas(status, limit, offset)
         return [DenunciaResponseDTO.from_entity(d) for d in denuncias]
 
     def buscar_denuncia(self, denuncia_id: int, usuario_id: int) -> DenunciaResponseDTO:
@@ -209,3 +213,23 @@ class DenunciaService:
 
         denuncia = self.repository.atualizar_status(denuncia, novo_status)
         return DenunciaResponseDTO.from_entity(denuncia)
+
+    def contar_total_denuncias(
+        self,
+        usuario_id: int,
+        status: Optional[StatusDenuncia] = None,
+        todas: bool = False,
+    ) -> int:
+        """Conta o total de denúncias com filtros."""
+        usuario = self.usuario_repository.buscar_por_id(usuario_id)
+        if not usuario:
+            raise ValueError("Usuário não encontrado")
+
+        self._verificar_usuario_ativo(usuario)
+
+        if todas:
+            if not self._verificar_permissao_admin_fiscal(usuario):
+                raise AutorizacaoError("Usuário não tem permissão para contar todas as denúncias")
+            return self.repository.contar_total(usuario_id=None, status=status)
+        else:
+            return self.repository.contar_total(usuario_id=usuario_id, status=status)

@@ -25,6 +25,22 @@ import {
 export default function DashboardPage() {
   const { user, logout, isLoading } = useAuth();
 
+  // Função para retornar cores específicas por grupo
+  const getGrupoColor = (nomeGrupo: string) => {
+    const nome = nomeGrupo.toLowerCase();
+    if (nome.includes('administrador') || nome.includes('admin')) {
+      return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+    }
+    if (nome.includes('fiscal')) {
+      return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
+    }
+    if (nome.includes('gerente') || nome.includes('gestor')) {
+      return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+    }
+    // Cidadão ou outros grupos
+    return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -125,7 +141,7 @@ export default function DashboardPage() {
                   {user.grupos.map((grupo, index) => (
                     <span 
                       key={index} 
-                      className="text-sm font-semibold bg-primary/10 text-primary px-3 py-1 rounded-full"
+                      className={`text-sm font-semibold px-3 py-1 rounded-full ${getGrupoColor(grupo.nome)}`}
                     >
                       {grupo.nome}
                     </span>
@@ -291,7 +307,7 @@ export default function DashboardPage() {
                       <div className="flex flex-col items-end gap-1">
                         {user.grupos.map((grupo, index) => (
                           <div key={index} className="flex items-center gap-1">
-                            <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-1 rounded">
+                            <span className={`text-sm font-medium px-2 py-1 rounded ${getGrupoColor(grupo.nome)}`}>
                               {grupo.nome}
                             </span>
                           </div>

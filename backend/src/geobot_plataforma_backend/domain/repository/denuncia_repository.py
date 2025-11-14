@@ -107,3 +107,19 @@ class DenunciaRepository:
 
         results = query.group_by(Denuncia.status).all()
         return {status.value: count for status, count in results}
+
+    def contar_total(
+        self, 
+        usuario_id: Optional[int] = None, 
+        status: Optional[StatusDenuncia] = None
+    ) -> int:
+        """Conta o total de denúncias com filtros opcionais"""
+        query = self.db.query(func.count(Denuncia.id))
+
+        if usuario_id:
+            query = query.filter(Denuncia.usuario_id == usuario_id)
+
+        if status:
+            query = query.filter(Denuncia.status == status)
+
+        return query.scalar() or 0

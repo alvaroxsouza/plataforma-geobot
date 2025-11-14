@@ -15,6 +15,7 @@ from src.geobot_plataforma_backend.api.routers import (
     metadata_router,
     sessoes_router,
 )
+from src.geobot_plataforma_backend.api.routers.etapa_fiscalizacao_router import router as etapa_fiscalizacao_router
 
 
 tags_metadata = [
@@ -33,6 +34,10 @@ tags_metadata = [
     {
         'name': 'fiscalizacao',
         'description': 'Fluxo de fiscalização relacionado às denúncias.'
+    },
+    {
+        'name': 'etapas-fiscalizacao',
+        'description': 'Gerenciamento de etapas do pipeline de fiscalização (sobrevoo, upload, análise IA, relatório).'
     },
     {
         'name': 'Metadata',
@@ -70,6 +75,7 @@ def create_app() -> FastAPI:
     app.include_router(sessoes_router, prefix="/api")
     app.include_router(denuncia_router, prefix="/api")
     app.include_router(fiscalizacao_router, prefix="/api")
+    app.include_router(etapa_fiscalizacao_router, prefix="/api")
     app.include_router(metadata_router)  # Já tem prefix="/api/metadata" no router
 
     @app.get('/')

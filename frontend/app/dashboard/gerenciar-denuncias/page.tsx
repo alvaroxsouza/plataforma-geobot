@@ -36,49 +36,53 @@ import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { servicoDenuncias, DenunciaResposta, StatusDenuncia } from "@/services/denuncias";
 import { fiscalizacaoService } from "@/services/fiscalizacao";
+import { usuarioService, Usuario } from "@/services/usuarios";
 import { toast } from "sonner";
+import { useMetadata } from "@/hooks/useMetadata";
 
-// Badge de status
-const StatusBadge = ({ status }: { status: StatusDenuncia }) => {
-  const variants: Record<StatusDenuncia, { variant: "default" | "secondary" | "destructive" | "outline", label: string, color?: string }> = {
-    pendente: { variant: "secondary", label: "Pendente" },
-    em_analise: { variant: "default", label: "Em Análise" },
-    em_fiscalizacao: { variant: "default", label: "Em Fiscalização", color: "bg-blue-100 text-blue-800 hover:bg-blue-200" },
-    concluida: { variant: "default", label: "Concluída", color: "bg-green-100 text-green-800 hover:bg-green-200" },
-    arquivada: { variant: "outline", label: "Arquivada" },
-    cancelada: { variant: "destructive", label: "Cancelada" }
-  };
 
-  const config = variants[status];
-
-  return (
-    <Badge variant={config.variant} className={config.color}>
-      {config.label}
-    </Badge>
-  );
-};
 
 export default function GerenciarDenunciasPage() {
   const router = useRouter();
+  
+  // Metadados do sistema
+  const {
+    getStatusLabel,
+    getStatusColor,
+    getCategoriaLabel,
+    loading: metadataLoading,
+  } = useMetadata();
+  
   const [denuncias, setDenuncias] = useState<DenunciaResposta[]>([]);
   const [loading, setLoading] = useState(true);
   const [buscaQuery, setBuscaQuery] = useState("");
+  
+  // Paginação
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const [itensPorPagina] = useState(20);
+  const [totalItens, setTotalItens] = useState(0);
   
   // Dialog de enviar para fiscalização
   const [fiscalizacaoDialog, setFiscalizacaoDialog] = useState(false);
   const [denunciaSelecionada, setDenunciaSelecionada] = useState<DenunciaResposta | null>(null);
   const [observacoes, setObservacoes] = useState("");
   const [dataConclusao, setDataConclusao] = useState("");
+  const [fiscalSelecionado, setFiscalSelecionado] = useState<string>("");
+  const [fiscaisDisponiveis, setFiscaisDisponiveis] = useState<Usuario[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   // Carregar denúncias
   const carregarDenuncias = async () => {
     try {
       setLoading(true);
-      const data = await servicoDenuncias.listar({
+      const offset = (paginaAtual - 1) * itensPorPagina;
+      const response = await servicoDenuncias.listar({
         todas: true,
+        limit: itensPorPagina,
+        offset: offset,
       });
-      setDenuncias(data);
+      setDenuncias(response.data);
+      setTotalItens(response.pagination.total);
     } catch (error) {
       console.error("Erro ao carregar denúncias:", error);
       toast.error("Erro ao carregar denúncias");
@@ -89,6 +93,19 @@ export default function GerenciarDenunciasPage() {
 
   useEffect(() => {
     carregarDenuncias();
+  }, [paginaAtual]);
+
+  // Carregar fiscais disponíveis
+  useEffect(() => {
+    const carregarFiscais = async () => {
+      try {
+        const fiscais = await usuarioService.listarFiscais();
+        setFiscaisDisponiveis(fiscais);
+      } catch (error) {
+        console.error("Erro ao carregar fiscais:", error);
+      }
+    };
+    carregarFiscais();
   }, []);
 
   // Filtrar denúncias pela busca
@@ -115,15 +132,32 @@ export default function GerenciarDenunciasPage() {
       setSubmitting(true);
       
       // Criar fiscalização
-      await fiscalizacaoService.create({
+      const fiscalizacao = await fiscalizacaoService.create({
         complaint_id: denunciaSelecionada.id,
         observacoes: observacoes || null,
         data_conclusao_prevista: dataConclusao || null,
       });
 
-      toast.success("Denúncia enviada para fiscalização com sucesso!");
+      // Se um fiscal foi selecionado, atribuir a fiscalização
+      if (fiscalSelecionado) {
+        try {
+          await fiscalizacaoService.assign(fiscalizacao.id, {
+            fiscal_id: parseInt(fiscalSelecionado),
+          });
+          toast.success("Denúncia enviada e fiscal atribuído com sucesso!");
+        } catch (error) {
+          console.error("Erro ao atribuir fiscal:", error);
+          toast.warning("Fiscalização criada, mas erro ao atribuir fiscal");
+        }
+      } else {
+        toast.success("Denúncia enviada para fiscalização com sucesso!");
+      }
+
       setFiscalizacaoDialog(false);
       setDenunciaSelecionada(null);
+      setObservacoes("");
+      setDataConclusao("");
+      setFiscalSelecionado("");
       
       // Recarregar denúncias
       await carregarDenuncias();
@@ -135,11 +169,16 @@ export default function GerenciarDenunciasPage() {
     }
   };
 
+  // Cálculos de paginação
+  const totalPaginas = Math.ceil(totalItens / itensPorPagina);
+  const temPaginaAnterior = paginaAtual > 1;
+  const temProximaPagina = paginaAtual < totalPaginas;
+
   // Estatísticas
   const stats = [
     { 
       label: "Total", 
-      value: denuncias.length,
+      value: totalItens,
       color: "text-blue-600"
     },
     { 
@@ -232,7 +271,7 @@ export default function GerenciarDenunciasPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {(loading || metadataLoading) ? (
             <div className="text-center py-8 text-muted-foreground">
               Carregando denúncias...
             </div>
@@ -269,9 +308,11 @@ export default function GerenciarDenunciasPage() {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="capitalize">{denuncia.categoria.replace(/_/g, ' ')}</TableCell>
+                        <TableCell className="capitalize">{getCategoriaLabel(denuncia.categoria)}</TableCell>
                         <TableCell>
-                          <StatusBadge status={denuncia.status} />
+                          <Badge className={getStatusColor(denuncia.status)}>
+                            {getStatusLabel(denuncia.status)}
+                          </Badge>
                         </TableCell>
                         <TableCell className="text-sm">{denuncia.usuario.nome}</TableCell>
                         <TableCell className="text-sm">
@@ -293,14 +334,18 @@ export default function GerenciarDenunciasPage() {
                                 <Eye className="mr-2 h-4 w-4" />
                                 Ver Detalhes
                               </DropdownMenuItem>
-                              {denuncia.status === "pendente" && (
-                                <DropdownMenuItem
-                                  onClick={() => handleEnviarParaFiscalizacao(denuncia)}
-                                >
-                                  <Send className="mr-2 h-4 w-4" />
-                                  Enviar para Fiscalização
-                                </DropdownMenuItem>
-                              )}
+                              <DropdownMenuItem
+                                onClick={() => handleEnviarParaFiscalizacao(denuncia)}
+                                disabled={
+                                  denuncia.status === "em_fiscalizacao" || 
+                                  denuncia.status === "concluida" ||
+                                  denuncia.status === "arquivada" ||
+                                  denuncia.status === "cancelada"
+                                }
+                              >
+                                <Send className="mr-2 h-4 w-4" />
+                                Enviar para Fiscalização
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -309,6 +354,38 @@ export default function GerenciarDenunciasPage() {
                   )}
                 </TableBody>
               </Table>
+            </div>
+          )}
+          
+          {/* Controles de Paginação */}
+          {!loading && totalPaginas > 1 && (
+            <div className="flex items-center justify-between px-2 py-4">
+              <div className="text-sm text-muted-foreground">
+                Mostrando {((paginaAtual - 1) * itensPorPagina) + 1} a {Math.min(paginaAtual * itensPorPagina, totalItens)} de {totalItens} denúncias
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPaginaAtual(prev => Math.max(1, prev - 1))}
+                  disabled={!temPaginaAnterior}
+                >
+                  Anterior
+                </Button>
+                <div className="flex items-center gap-2 px-3">
+                  <span className="text-sm">
+                    Página {paginaAtual} de {totalPaginas}
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPaginaAtual(prev => Math.min(totalPaginas, prev + 1))}
+                  disabled={!temProximaPagina}
+                >
+                  Próxima
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
@@ -325,6 +402,34 @@ export default function GerenciarDenunciasPage() {
           </DialogHeader>
           
           <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="fiscal">Fiscal Responsável (Opcional)</Label>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between">
+                    {fiscalSelecionado
+                      ? fiscaisDisponiveis.find((f) => f.id.toString() === fiscalSelecionado)?.nome
+                      : "Selecionar Fiscal"}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-full">
+                  <DropdownMenuLabel>Fiscais Disponíveis</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setFiscalSelecionado("")}>
+                    Nenhum (atribuir depois)
+                  </DropdownMenuItem>
+                  {fiscaisDisponiveis.map((fiscal) => (
+                    <DropdownMenuItem
+                      key={fiscal.id}
+                      onClick={() => setFiscalSelecionado(fiscal.id.toString())}
+                    >
+                      {fiscal.nome} - {fiscal.email}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="data-conclusao">Data de Conclusão Prevista (Opcional)</Label>
               <Input

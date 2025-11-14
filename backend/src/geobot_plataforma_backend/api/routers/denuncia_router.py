@@ -89,7 +89,6 @@ def _value_error_to_status(err: ValueError) -> int:
 
 @router.get(
     "/",
-    response_model=List[dict],
     summary="Listar Denuncias",
     description="Lista denúncias do usuário ou todas (para admin/fiscal).",
     operation_id="listar_denuncias_api_denuncias__get",
@@ -97,17 +96,31 @@ def _value_error_to_status(err: ValueError) -> int:
 def listar_denuncias(
     status_filter: Optional[StatusDenuncia] = Query(None, alias="status", description="Filtrar por status"),
     todas: bool = Query(False, description="Se true, lista todas as denúncias (apenas admin/fiscal)"),
+    limit: int = Query(50, ge=1, le=100, description="Quantidade de registros por página"),
+    offset: int = Query(0, ge=0, description="Posição inicial (para paginação)"),
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Lista denúncias do usuário ou todas (para admin/fiscal)."""
+    """Lista denúncias do usuário ou todas (para admin/fiscal) com paginação."""
     service = DenunciaService(db)
     try:
         if todas:
-            denuncias = service.listar_todas_denuncias(current_user.id, status_filter)
+            denuncias = service.listar_todas_denuncias(current_user.id, status_filter, limit, offset)
+            total = service.contar_total_denuncias(current_user.id, status_filter, todas=True)
         else:
-            denuncias = service.listar_minhas_denuncias(current_user.id, status_filter)
-        return [denuncia.to_dict() for denuncia in denuncias]
+            denuncias = service.listar_minhas_denuncias(current_user.id, status_filter, limit, offset)
+            total = service.contar_total_denuncias(current_user.id, status_filter, todas=False)
+        
+        return {
+            "data": [denuncia.to_dict() for denuncia in denuncias],
+            "pagination": {
+                "total": total,
+                "limit": limit,
+                "offset": offset,
+                "has_next": offset + limit < total,
+                "has_prev": offset > 0
+            }
+        }
     except AutorizacaoError as err:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(err)) from err
     except ValueError as err:

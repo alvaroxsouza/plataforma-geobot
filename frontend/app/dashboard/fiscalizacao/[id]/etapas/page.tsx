@@ -1,447 +1,558 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { Home, ChevronRight, Loader2, AlertCircle, CheckCircle2, Clock, Upload, Brain, FileText, Play, ArrowRight, XCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  AlertCircle,
-  CheckCircle2,
-  Clock,
-  Image,
-  Zap,
-  FileText,
-  ChevronRight,
-  Upload,
-  Play,
-  Loader2,
-  Download,
-  Eye,
-  MoreVertical,
-} from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import Link from "next/link";
+import { toast } from "sonner";
+import { etapasFiscalizacaoService, ProgressoFiscalizacao } from "@/services/etapas-fiscalizacao";
 
-interface Etapa {
-  id: number;
-  nome: string;
-  descricao: string;
-  status: "pendente" | "em_progresso" | "concluida" | "erro";
-  progresso: number;
-  icone: React.ReactNode;
-  duracao?: string;
-}
-
-const etapas: Etapa[] = [
-  {
-    id: 1,
-    nome: "Sobrevôo",
-    descricao: "Captura aérea com drone",
-    status: "concluida",
-    progresso: 100,
-    icone: <Image className="h-5 w-5" />,
-    duracao: "45min",
+// Mapa de etapas para UI
+const ETAPAS_INFO = {
+  pendente: {
+    label: "Pendente",
+    icon: Clock,
+    color: "text-gray-500",
+    bgColor: "bg-gray-100",
+    description: "Fiscalização criada, aguardando início",
   },
-  {
-    id: 2,
-    nome: "Abastecimento",
-    descricao: "Upload de imagens do sobrevôo",
-    status: "em_progresso",
-    progresso: 65,
-    icone: <Upload className="h-5 w-5" />,
+  sobrevoo: {
+    label: "Sobrevoo",
+    icon: Play,
+    color: "text-blue-500",
+    bgColor: "bg-blue-100",
+    description: "Captura aérea em andamento",
   },
-  {
-    id: 3,
-    nome: "Análise IA",
-    descricao: "Processamento com modelo de IA",
-    status: "pendente",
-    progresso: 0,
-    icone: <Zap className="h-5 w-5" />,
+  abastecimento: {
+    label: "Upload de Imagens",
+    icon: Upload,
+    color: "text-purple-500",
+    bgColor: "bg-purple-100",
+    description: "Carregamento de imagens capturadas",
   },
-  {
-    id: 4,
-    nome: "Relatório",
-    descricao: "Geração do relatório final",
-    status: "pendente",
-    progresso: 0,
-    icone: <FileText className="h-5 w-5" />,
+  analise_ia: {
+    label: "Análise IA",
+    icon: Brain,
+    color: "text-orange-500",
+    bgColor: "bg-orange-100",
+    description: "Processamento com Inteligência Artificial",
   },
-];
+  relatorio: {
+    label: "Relatório",
+    icon: FileText,
+    color: "text-green-500",
+    bgColor: "bg-green-100",
+    description: "Geração de relatório final",
+  },
+  concluida: {
+    label: "Concluída",
+    icon: CheckCircle2,
+    color: "text-green-600",
+    bgColor: "bg-green-200",
+    description: "Fiscalização finalizada com sucesso",
+  },
+  cancelada: {
+    label: "Cancelada",
+    icon: XCircle,
+    color: "text-red-500",
+    bgColor: "bg-red-100",
+    description: "Fiscalização cancelada",
+  },
+} as const;
 
-const getStatusColor = (status: Etapa["status"]) => {
-  switch (status) {
-    case "concluida":
-      return "bg-green-100 text-green-800";
-    case "em_progresso":
-      return "bg-blue-100 text-blue-800";
-    case "erro":
-      return "bg-red-100 text-red-800";
-    default:
-      return "bg-gray-100 text-gray-800";
-  }
-};
+export default function EtapasFiscalizacaoPage() {
+  const router = useRouter();
+  const params = useParams();
+  const fiscalizacaoId = parseInt(params.id as string);
 
-const getStatusIcon = (status: Etapa["status"]) => {
-  switch (status) {
-    case "concluida":
-      return <CheckCircle2 className="h-5 w-5 text-green-600" />;
-    case "em_progresso":
-      return <Clock className="h-5 w-5 text-blue-600 animate-spin" />;
-    case "erro":
-      return <AlertCircle className="h-5 w-5 text-red-600" />;
-    default:
-      return <div className="h-5 w-5 rounded-full border-2 border-gray-300" />;
-  }
-};
+  const [progresso, setProgresso] = useState<ProgressoFiscalizacao | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [iniciando, setIniciando] = useState(false);
+  const [transicionando, setTransicionando] = useState(false);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [relatorioDialogOpen, setRelatorioDialogOpen] = useState(false);
+  const [arquivosSelecionados, setArquivosSelecionados] = useState<File[]>([]);
+  const [tituloRelatorio, setTituloRelatorio] = useState("");
+  const [resumoRelatorio, setResumoRelatorio] = useState("");
 
-const statusTexto = {
-  concluida: "Concluída",
-  em_progresso: "Em Progresso",
-  pendente: "Pendente",
-  erro: "Erro",
-};
-
-export default function FiscalizacaoEtapasPipelinePage() {
-  const [etapaSelecionada, setEtapaSelecionada] = useState(2);
-  const [detalhesAbertos, setDetalhesAbertos] = useState(false);
-  const [imagens, setImagens] = useState<File[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [resultadoIA, setResultadoIA] = useState<any>(null);
-  const [relatorio, setRelatorio] = useState<any>(null);
+  // Carregar progresso
+  const carregarProgresso = async () => {
+    try {
+      setLoading(true);
+      const data = await etapasFiscalizacaoService.obterProgresso(fiscalizacaoId);
+      setProgresso(data);
+    } catch (err) {
+      console.error("Erro ao carregar progresso:", err);
+      toast.error("Erro ao carregar progresso da fiscalização");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Simular carregamento de dados
-    const timer = setTimeout(() => {
-      setResultadoIA({
-        deteccoes: 3,
-        confianca: 0.87,
-        tempo: "12m 34s",
-      });
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, []);
+    carregarProgresso();
+  }, [fiscalizacaoId]);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    setImagens([...imagens, ...files]);
+  // Iniciar fiscalização
+  const handleIniciar = async () => {
+    try {
+      setIniciando(true);
+      await etapasFiscalizacaoService.iniciar(fiscalizacaoId);
+      toast.success("Fiscalização iniciada com sucesso!");
+      await carregarProgresso();
+    } catch (err) {
+      console.error("Erro ao iniciar:", err);
+      toast.error("Erro ao iniciar fiscalização");
+    } finally {
+      setIniciando(false);
+    }
   };
 
+  // Avançar para próxima etapa
+  const handleProximaEtapa = async () => {
+    try {
+      setTransicionando(true);
+      await etapasFiscalizacaoService.proximaEtapa(fiscalizacaoId);
+      toast.success("Etapa avançada com sucesso!");
+      await carregarProgresso();
+    } catch (err) {
+      console.error("Erro ao avançar etapa:", err);
+      toast.error("Erro ao avançar para próxima etapa");
+    } finally {
+      setTransicionando(false);
+    }
+  };
+
+  // Upload de arquivos
   const handleUpload = async () => {
-    setUploading(true);
-    // Simular upload
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setUploading(false);
-    setImagens([]);
+    if (arquivosSelecionados.length === 0 || !progresso?.etapa_em_progresso) {
+      toast.error("Selecione ao menos um arquivo");
+      return;
+    }
+
+    try {
+      const etapaId = fiscalizacaoId;
+
+      for (const arquivo of arquivosSelecionados) {
+        await etapasFiscalizacaoService.uploadArquivo(etapaId, arquivo);
+      }
+
+      toast.success(`${arquivosSelecionados.length} arquivo(s) enviado(s) com sucesso!`);
+      setUploadDialogOpen(false);
+      setArquivosSelecionados([]);
+      await carregarProgresso();
+    } catch (err) {
+      console.error("Erro no upload:", err);
+      toast.error("Erro ao enviar arquivos");
+    }
   };
 
-  const handleIniciarAnalise = async () => {
-    console.log("Iniciando análise de IA...");
-    // Trigger Skypilot job
+  // Iniciar análise IA
+  const handleIniciarIA = async () => {
+    try {
+      if (!progresso) return;
+
+      toast.info("Iniciando análise de IA...");
+      const etapaId = fiscalizacaoId;
+      await etapasFiscalizacaoService.iniciarAnaliseIA(etapaId, []);
+      toast.success("Análise de IA iniciada!");
+      await carregarProgresso();
+    } catch (err) {
+      console.error("Erro ao iniciar IA:", err);
+      toast.error("Erro ao iniciar análise de IA");
+    }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold tracking-tight">
-                Pipeline de Fiscalização
-              </h1>
-              <p className="text-muted-foreground mt-2">
-                Denúncia #12345 - Fiscalização em andamento
-              </p>
-            </div>
-            <div className="text-right">
-              <div className="text-3xl font-bold">65%</div>
-              <p className="text-sm text-muted-foreground">Progresso Geral</p>
-            </div>
-          </div>
+  // Gerar relatório
+  const handleGerarRelatorio = async () => {
+    if (!tituloRelatorio.trim()) {
+      toast.error("Digite um título para o relatório");
+      return;
+    }
+
+    try {
+      const etapaId = fiscalizacaoId;
+      await etapasFiscalizacaoService.gerarRelatorio(etapaId, tituloRelatorio, {
+        resumoExecutivo: resumoRelatorio,
+      });
+
+      toast.success("Relatório gerado com sucesso!");
+      setRelatorioDialogOpen(false);
+      setTituloRelatorio("");
+      setResumoRelatorio("");
+      await carregarProgresso();
+    } catch (err) {
+      console.error("Erro ao gerar relatório:", err);
+      toast.error("Erro ao gerar relatório");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Carregando progresso...</p>
         </div>
+      </div>
+    );
+  }
 
-        {/* Progresso Geral */}
-        <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
-          <CardContent className="pt-6">
-            <Progress value={65} className="h-3" />
-            <div className="flex justify-between mt-3 text-sm text-muted-foreground">
-              <span>2 etapas concluídas</span>
-              <span>2 etapas pendentes</span>
-            </div>
+  if (!progresso) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="flex items-center text-red-600">
+              <AlertCircle className="mr-2 h-5 w-5" />
+              Erro ao Carregar
+            </CardTitle>
+            <CardDescription>
+              Não foi possível carregar o progresso da fiscalização
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => router.back()} className="w-full">
+              Voltar
+            </Button>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
 
-        {/* Timeline de Etapas */}
-        <div className="grid gap-4">
-          {etapas.map((etapa, index) => (
-            <div key={etapa.id}>
-              <Card
-                className={`cursor-pointer transition-all hover:shadow-lg ${
-                  etapaSelecionada === index ? "ring-2 ring-primary" : ""
-                }`}
-                onClick={() => {
-                  setEtapaSelecionada(index);
-                  setDetalhesAbertos(true);
-                }}
-              >
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                        {getStatusIcon(etapa.status)}
-                      </div>
+  const etapaAtual = ETAPAS_INFO[progresso.etapa_atual as keyof typeof ETAPAS_INFO] || ETAPAS_INFO.pendente;
+  const IconeAtual = etapaAtual.icon;
 
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-lg">{etapa.nome}</h3>
-                          <Badge className={getStatusColor(etapa.status)}>
-                            {statusTexto[etapa.status]}
-                          </Badge>
-                          {etapa.duracao && (
-                            <span className="text-xs text-muted-foreground">
-                              {etapa.duracao}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {etapa.descricao}
-                        </p>
-                      </div>
+  return (
+    <div className="flex flex-col gap-6 p-6">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link href="/dashboard" className="hover:text-foreground transition-colors">
+          <Home className="h-4 w-4" />
+        </Link>
+        <ChevronRight className="h-4 w-4" />
+        <Link href="/dashboard/fiscalizacao" className="hover:text-foreground transition-colors">
+          Fiscalizações
+        </Link>
+        <ChevronRight className="h-4 w-4" />
+        <span className="text-foreground font-medium">Pipeline #{fiscalizacaoId}</span>
+      </div>
+
+      {/* Header */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Pipeline de Fiscalização</h1>
+          <p className="text-muted-foreground">
+            Gerencie o fluxo de trabalho da fiscalização #{fiscalizacaoId}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={carregarProgresso}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Atualizar
+          </Button>
+          <Button variant="outline" onClick={() => router.back()}>
+            Voltar
+          </Button>
+        </div>
+      </div>
+
+      {/* Status Geral */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <IconeAtual className={`mr-2 h-6 w-6 ${etapaAtual.color}`} />
+            {etapaAtual.label}
+          </CardTitle>
+          <CardDescription>{etapaAtual.description}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <div className="flex justify-between text-sm mb-2">
+                <span className="font-medium">Progresso Geral</span>
+                <span className="text-muted-foreground">{progresso.progresso_geral_percentual}%</span>
+              </div>
+              <Progress value={progresso.progresso_geral_percentual} className="h-3" />
+            </div>
+
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="p-4 bg-green-50 rounded-lg">
+                <CheckCircle2 className="h-6 w-6 text-green-600 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-green-600">{progresso.etapas_concluidas.length}</p>
+                <p className="text-xs text-muted-foreground">Concluídas</p>
+              </div>
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <Clock className="h-6 w-6 text-blue-600 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-blue-600">1</p>
+                <p className="text-xs text-muted-foreground">Em Progresso</p>
+              </div>
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <AlertCircle className="h-6 w-6 text-gray-600 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-gray-600">{progresso.etapas_pendentes.length}</p>
+                <p className="text-xs text-muted-foreground">Pendentes</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Timeline de Etapas */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Timeline do Pipeline</CardTitle>
+          <CardDescription>Fluxo completo de etapas da fiscalização</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {Object.entries(ETAPAS_INFO).filter(([key]) => key !== "cancelada").map(([key, info], index) => {
+              const Icone = info.icon;
+              const isConcluida = progresso.etapas_concluidas.includes(key);
+              const isAtual = progresso.etapa_atual === key;
+              const isPendente = progresso.etapas_pendentes.includes(key);
+
+              return (
+                <div key={key}>
+                  <div className="flex items-start gap-4">
+                    <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
+                      isConcluida ? "bg-green-100" : isAtual ? info.bgColor : "bg-gray-100"
+                    }`}>
+                      <Icone className={`h-6 w-6 ${
+                        isConcluida ? "text-green-600" : isAtual ? info.color : "text-gray-400"
+                      }`} />
                     </div>
-
-                    <div className="flex items-center gap-4">
-                      <div className="w-32">
-                        <Progress value={etapa.progresso} className="h-2" />
-                        <p className="text-xs text-muted-foreground text-right mt-1">
-                          {etapa.progresso}%
-                        </p>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="font-semibold">{info.label}</h3>
+                        {isConcluida && (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Concluída
+                          </Badge>
+                        )}
+                        {isAtual && (
+                          <Badge variant="outline" className={`${info.bgColor} ${info.color}`}>
+                            <Clock className="h-3 w-3 mr-1" />
+                            Em Progresso
+                          </Badge>
+                        )}
+                        {isPendente && (
+                          <Badge variant="outline" className="bg-gray-50 text-gray-600">
+                            Pendente
+                          </Badge>
+                        )}
                       </div>
-                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">{info.description}</p>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-
-              {/* Linhas conectoras */}
-              {index < etapas.length - 1 && (
-                <div className="flex justify-center py-2">
-                  <div className={`w-1 h-8 ${etapas[index].status === "concluida" ? "bg-green-400" : "bg-gray-300"}`} />
+                  {index < Object.keys(ETAPAS_INFO).length - 2 && (
+                    <div className="ml-6 h-8 w-0.5 bg-gray-200" />
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Detalhes da Etapa Selecionada */}
-        {detalhesAbertos && (
-          <Card className="border-primary/50 bg-primary/5">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Detalhes - {etapas[etapaSelecionada].nome}</CardTitle>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setDetalhesAbertos(false)}
-                >
-                  ✕
-                </Button>
-              </div>
-            </CardHeader>
+      {/* Ações Disponíveis */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Ações Disponíveis</CardTitle>
+          <CardDescription>Operações para a etapa atual</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+            {/* Iniciar */}
+            {progresso.etapa_atual === "pendente" && (
+              <Button
+                onClick={handleIniciar}
+                disabled={iniciando}
+                className="h-auto flex-col items-start p-4 gap-2"
+              >
+                <Play className="h-5 w-5" />
+                <span className="text-sm font-semibold">Iniciar Fiscalização</span>
+              </Button>
+            )}
 
-            <CardContent className="space-y-6">
-              {/* Etapa 2: Abastecimento */}
-              {etapaSelecionada === 1 && (
-                <div className="space-y-6">
-                  <div>
-                    <h4 className="font-semibold mb-3">Upload de Imagens</h4>
-                    <div className="border-2 border-dashed border-primary/30 rounded-lg p-8 text-center hover:border-primary/60 transition-colors">
-                      <Upload className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
-                      <p className="text-sm font-medium">Arraste imagens ou clique para selecionar</p>
-                      <p className="text-xs text-muted-foreground mt-1">Formatos suportados: JPG, PNG</p>
-                      <input
+            {/* Próxima Etapa */}
+            {progresso.etapa_atual !== "pendente" && progresso.etapa_atual !== "concluida" && (
+              <Button
+                onClick={handleProximaEtapa}
+                disabled={transicionando}
+                className="h-auto flex-col items-start p-4 gap-2"
+              >
+                <ArrowRight className="h-5 w-5" />
+                <span className="text-sm font-semibold">Avançar Etapa</span>
+              </Button>
+            )}
+
+            {/* Upload */}
+            {progresso.etapa_atual === "abastecimento" && (
+              <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="h-auto flex-col items-start p-4 gap-2">
+                    <Upload className="h-5 w-5" />
+                    <span className="text-sm font-semibold">Upload Imagens</span>
+                    <span className="text-xs text-muted-foreground">
+                      {progresso.arquivos_carregados} arquivo(s)
+                    </span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Upload de Imagens</DialogTitle>
+                    <DialogDescription>
+                      Envie as imagens capturadas durante o sobrevoo
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="arquivos">Selecionar Arquivos</Label>
+                      <Input
+                        id="arquivos"
                         type="file"
                         multiple
                         accept="image/*"
-                        className="hidden"
-                        id="file-input"
-                        onChange={handleFileSelect}
+                        onChange={(e) => setArquivosSelecionados(Array.from(e.target.files || []))}
                       />
-                      <label htmlFor="file-input" className="mt-4 inline-block">
-                        <Button type="button" variant="outline">
-                          Selecionar Arquivos
-                        </Button>
-                      </label>
-                    </div>
-                  </div>
-
-                  {imagens.length > 0 && (
-                    <div>
-                      <h4 className="font-semibold mb-3">Imagens Selecionadas ({imagens.length})</h4>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {imagens.map((img, idx) => (
-                          <div key={idx} className="relative group">
-                            <img
-                              src={URL.createObjectURL(img)}
-                              alt={`Preview ${idx}`}
-                              className="w-full h-24 object-cover rounded-lg"
-                            />
-                            <button
-                              className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded opacity-0 group-hover:opacity-100"
-                              onClick={() => setImagens(imagens.filter((_, i) => i !== idx))}
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <Button
-                    onClick={handleUpload}
-                    disabled={imagens.length === 0 || uploading}
-                    className="w-full"
-                  >
-                    {uploading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Fazendo upload...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="h-4 w-4 mr-2" />
-                        Enviar {imagens.length > 0 ? `${imagens.length} Imagens` : "Imagens"}
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
-
-              {/* Etapa 3: Análise IA */}
-              {etapaSelecionada === 2 && (
-                <div className="space-y-6">
-                  <div>
-                    <h4 className="font-semibold mb-3">Status da Análise</h4>
-                    <div className="bg-muted p-4 rounded-lg space-y-2">
-                      <p className="text-sm">
-                        <span className="font-medium">Imagens para processar:</span> 12
-                      </p>
-                      <p className="text-sm">
-                        <span className="font-medium">Modelo:</span> YOLOv8 (Detecção de Anomalias)
-                      </p>
-                      <p className="text-sm">
-                        <span className="font-medium">Estimativa de tempo:</span> 15-25 minutos
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex gap-3">
-                      <Zap className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                      <div className="text-sm">
-                        <p className="font-medium text-blue-900">Processamento no Skypilot</p>
-                        <p className="text-blue-700 text-xs mt-1">
-                          Uma máquina Azure será provisionada para executar a análise
+                      {arquivosSelecionados.length > 0 && (
+                        <p className="text-sm text-muted-foreground">
+                          {arquivosSelecionados.length} arquivo(s) selecionado(s)
                         </p>
-                      </div>
+                      )}
                     </div>
                   </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={handleUpload}>Enviar</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
 
-                  <Button
-                    onClick={handleIniciarAnalise}
-                    className="w-full"
-                    size="lg"
-                  >
-                    <Zap className="h-4 w-4 mr-2" />
-                    Iniciar Análise com IA
+            {/* Análise IA */}
+            {progresso.etapa_atual === "analise_ia" && (
+              <Button
+                onClick={handleIniciarIA}
+                variant="outline"
+                className="h-auto flex-col items-start p-4 gap-2"
+              >
+                <Brain className="h-5 w-5" />
+                <span className="text-sm font-semibold">Iniciar Análise IA</span>
+              </Button>
+            )}
+
+            {/* Relatório */}
+            {progresso.etapa_atual === "relatorio" && (
+              <Dialog open={relatorioDialogOpen} onOpenChange={setRelatorioDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="h-auto flex-col items-start p-4 gap-2">
+                    <FileText className="h-5 w-5" />
+                    <span className="text-sm font-semibold">Gerar Relatório</span>
                   </Button>
-
-                  {resultadoIA && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-2">
-                      <p className="font-semibold text-green-900">✓ Análise Concluída</p>
-                      <p className="text-sm text-green-700">
-                        <span className="font-medium">{resultadoIA.deteccoes}</span> anomalias detectadas
-                      </p>
-                      <p className="text-sm text-green-700">
-                        Confiança média: <span className="font-medium">{(resultadoIA.confianca * 100).toFixed(1)}%</span>
-                      </p>
-                      <p className="text-xs text-green-600">
-                        Tempo de processamento: {resultadoIA.tempo}
-                      </p>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Gerar Relatório Final</DialogTitle>
+                    <DialogDescription>
+                      Preencha os dados para gerar o relatório da fiscalização
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="titulo">Título *</Label>
+                      <Input
+                        id="titulo"
+                        placeholder="Ex: Relatório de Fiscalização - Área Central"
+                        value={tituloRelatorio}
+                        onChange={(e) => setTituloRelatorio(e.target.value)}
+                      />
                     </div>
-                  )}
-                </div>
-              )}
-
-              {/* Etapa 4: Relatório */}
-              {etapaSelecionada === 3 && (
-                <div className="space-y-6">
-                  <div>
-                    <h4 className="font-semibold mb-3">Gerar Relatório</h4>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Crie um relatório consolidado com os resultados da análise
-                    </p>
+                    <div className="space-y-2">
+                      <Label htmlFor="resumo">Resumo Executivo</Label>
+                      <Textarea
+                        id="resumo"
+                        placeholder="Breve resumo dos principais achados..."
+                        rows={4}
+                        value={resumoRelatorio}
+                        onChange={(e) => setResumoRelatorio(e.target.value)}
+                      />
+                    </div>
                   </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setRelatorioDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={handleGerarRelatorio}>Gerar Relatório</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
-                  <Button className="w-full" size="lg">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Gerar Relatório Final
-                  </Button>
-
-                  {relatorio && (
-                    <div className="bg-muted p-4 rounded-lg space-y-3">
-                      <p className="font-semibold">Relatório Gerado</p>
-                      <p className="text-sm">Ref: RF-2025-001234</p>
-                      <Button variant="outline" className="w-full">
-                        <Download className="h-4 w-4 mr-2" />
-                        Download PDF
-                      </Button>
-                    </div>
-                  )}
+      {/* Resultado IA (se disponível) */}
+      {progresso.resultado_ia && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Brain className="mr-2 h-5 w-5 text-orange-500" />
+              Resultado da Análise IA
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <p className="text-2xl font-bold text-blue-600">
+                    {progresso.resultado_ia.deteccoes.length}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Detecções</p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Painel de Resumo */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Etapas Concluídas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">2 / 4</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Sobrevôo, Abastecimento
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Imagens Processadas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">12 / 12</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                100% dos arquivos carregados
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Anomalias Detectadas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">3</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Confiança: 87%
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+                <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <p className="text-2xl font-bold text-green-600">
+                    {Math.round(progresso.resultado_ia.confianca_media * 100)}%
+                  </p>
+                  <p className="text-xs text-muted-foreground">Confiança Média</p>
+                </div>
+                <div className="text-center p-4 bg-purple-50 rounded-lg">
+                  <p className="text-lg font-bold text-purple-600">
+                    {progresso.resultado_ia.modelo_utilizado || "N/A"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Modelo</p>
+                </div>
+                <div className="text-center p-4 bg-orange-50 rounded-lg">
+                  <p className="text-2xl font-bold text-orange-600">
+                    {progresso.resultado_ia.tempo_processamento_segundos || 0}s
+                  </p>
+                  <p className="text-xs text-muted-foreground">Tempo Proc.</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
